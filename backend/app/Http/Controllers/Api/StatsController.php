@@ -43,9 +43,17 @@ class StatsController extends Controller
             ->withCount([
                 'registrations as tickets_count' => fn ($q) => $q->where('payment_status', 'paid'),
             ])
-            ->orderByDesc('end_at')
-            ->orderByDesc('start_at')
             ->get()
+            ->sort(function (Event $a, Event $b) {
+                $aEffectiveEnd = strtotime((string) ($a->end_at ?? $a->start_at));
+                $bEffectiveEnd = strtotime((string) ($b->end_at ?? $b->start_at));
+
+                if ($aEffectiveEnd === $bEffectiveEnd) {
+                    return strtotime((string) $b->start_at) <=> strtotime((string) $a->start_at);
+                }
+
+                return $bEffectiveEnd <=> $aEffectiveEnd;
+            })
             ->map($formatPastEvent)
             ->values()
             ->all();
