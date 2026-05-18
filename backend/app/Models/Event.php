@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use MongoDB\Laravel\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -102,11 +102,21 @@ class Event extends Model
 
     public function scopeNotFinished($query)
     {
-        return $query->whereRaw('COALESCE(end_at, start_at) >= ?', [now()]);
+        return $query->where(function ($q) {
+            $q->where('end_at', '>=', now())
+              ->orWhere(function ($q2) {
+                  $q2->whereNull('end_at')->where('start_at', '>=', now());
+              });
+        });
     }
 
     public function scopeFinished($query)
     {
-        return $query->whereRaw('COALESCE(end_at, start_at) < ?', [now()]);
+        return $query->where(function ($q) {
+            $q->where('end_at', '<', now())
+              ->orWhere(function ($q2) {
+                  $q2->whereNull('end_at')->where('start_at', '<', now());
+              });
+        });
     }
 }

@@ -2,77 +2,48 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\HasPublicImage;
-use Illuminate\Database\Eloquent\Model;
+use MongoDB\Laravel\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class EventRequest extends Model
 {
-    use HasPublicImage;
-
     protected $appends = ['image_url'];
 
     protected $fillable = [
+        'user_id',
         'title',
         'description',
         'image_path',
-        'preferred_start',
-        'preferred_end',
         'location',
-        'ticket_price',
-        'contact_name',
-        'contact_email',
-        'contact_phone',
+        'start_at',
+        'end_at',
+        'capacity',
+        'budget',
         'status',
-        'rejection_reason',
-        'reviewed_at',
-        'reviewed_by_id',
+        'admin_notes',
     ];
 
     protected function casts(): array
     {
         return [
-            'preferred_start' => 'datetime',
-            'preferred_end' => 'datetime',
-            'reviewed_at' => 'datetime',
-            'ticket_price' => 'decimal:2',
+            'start_at' => 'datetime',
+            'end_at' => 'datetime',
+            'budget' => 'decimal:2',
         ];
     }
 
-    public function reviewer(): BelongsTo
+    public function getImageUrlAttribute(): ?string
     {
-        return $this->belongsTo(User::class, 'reviewed_by_id');
-    }
-
-    public function event(): HasOne
-    {
-        return $this->hasOne(Event::class);
-    }
-
-    public static function clientBlockingReason(string $email): ?string
-    {
-        if (static::query()->where('contact_email', $email)->where('status', 'pending')->exists()) {
-            return 'pending';
+        if (! empty($this->attributes['image_path'])) {
+            return '/storage/'.ltrim(str_replace('\\', '/', $this->attributes['image_path']), '/');
         }
 
-        $hasActiveApproved = static::query()
-            ->where('contact_email', $email)
-            ->where('status', 'approved')
-            ->where(function ($q) {
-                $q->whereDoesntHave('event')
-                    ->orWhereHas('event', function ($e) {
-                        $e->where('status', '!=', 'published')
-                            ->orWhereRaw('COALESCE(end_at, start_at) >= ?', [now()]);
-                    });
-            })
-            ->exists();
-
-        return $hasActiveApproved ? 'active_event' : null;
+        return null;
     }
 
-    public static function clientHasBlockingRequest(string $email): bool
+    public function user(): BelongsTo
     {
-        return static::clientBlockingReason($email) !== null;
+        return $this->belongsTo(User::class);
     }
 }
+

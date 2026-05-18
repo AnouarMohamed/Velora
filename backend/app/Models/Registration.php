@@ -2,27 +2,24 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use MongoDB\Laravel\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Registration extends Model
 {
     protected $fillable = [
         'event_id',
         'user_id',
+        'ticket_type',
         'status',
-        'payment_status',
-        'ticket_code',
-        'amount',
-        'paid_at',
+        'registered_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'paid_at' => 'datetime',
-            'amount' => 'decimal:2',
+            'registered_at' => 'datetime',
         ];
     }
 
@@ -36,8 +33,9 @@ class Registration extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function payments(): HasMany
+    public function payment(): HasOne
     {
-        return $this->hasMany(Payment::class);
+        return $this->hasOne(Payment::class);
     }
 }
+
