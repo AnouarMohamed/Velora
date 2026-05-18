@@ -66,13 +66,23 @@ class EventRequest extends Model
             return 'pending';
         }
 
-        $approvedRequests = static::query()
+        $approvedRequestIds = static::query()
             ->where('contact_email', $email)
             ->where('status', 'approved')
-            ->get(['id']);
+            ->pluck('id')
+            ->all();
 
-        foreach ($approvedRequests as $request) {
-            $event = Event::query()->where('event_request_id', $request->id)->first();
+        if ($approvedRequestIds === []) {
+            return null;
+        }
+
+        $eventsByRequestId = Event::query()
+            ->whereIn('event_request_id', $approvedRequestIds)
+            ->get()
+            ->keyBy(fn ($event) => (string) $event->event_request_id);
+
+        foreach ($approvedRequestIds as $approvedRequestId) {
+            $event = $eventsByRequestId->get((string) $approvedRequestId);
 
             if (! $event || $event->status !== 'published' || ! $event->isFinished()) {
                 return 'active_event';
