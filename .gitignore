@@ -1,0 +1,19 @@
+# Root gitignore
+backend/node_modules
+backend/vendor
+backend/.env
+backend/storage/*.key
+backend/storage/pail
+backend/public/storage
+backend/public/build
+backend/.phpunit.cache
+
+frontend/node_modules
+frontend/dist
+frontend/.env
+frontend/.env.local
+
+.DS_Store
+.idea
+.vscode
+*.log

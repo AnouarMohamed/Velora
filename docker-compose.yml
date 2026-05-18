@@ -1,0 +1,50 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      APP_NAME: VELORA
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://127.0.0.1:8000
+      APP_LOCALE: fr
+      APP_FALLBACK_LOCALE: fr
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+      SESSION_DRIVER: database
+      QUEUE_CONNECTION: database
+      CACHE_STORE: database
+      LOG_CHANNEL: stack
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./backend:/var/www/html
+      - backend_vendor:/var/www/html/vendor
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000\") === false ? 1 : 0);'",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_URL: /api
+      VITE_BACKEND_URL: http://backend:8000
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  backend_vendor:
+  frontend_node_modules:

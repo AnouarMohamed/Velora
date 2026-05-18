@@ -1,0 +1,265 @@
+@import "tailwindcss";
+
+@theme {
+  --spacing: 0.3rem;
+  --font-sans: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --color-brand-50: #faf8f5;
+  --color-brand-100: #f5f0e8;
+  --color-brand-200: #e8ddd0;
+  --color-brand-300: #d4c4a8;
+  --color-brand-400: #b8a078;
+  --color-brand-500: #9a8468;
+  --color-brand-600: #7d6b54;
+  --color-brand-700: #5e5040;
+  --color-brand-800: #40362c;
+  --color-brand-900: #2a231c;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  font-family: var(--font-sans);
+}
+
+body {
+  @apply min-h-screen bg-transparent text-2xl font-normal text-stone-900 antialiased;
+  position: relative;
+  isolation: isolate;
+  letter-spacing: 0.02em;
+}
+
+/* Espacement gap-2 (boutons, grilles) */
+.gap-2 {
+  gap: calc(var(--spacing) * 2);
+}
+
+/* Logo + VELORA très proches */
+.velora-brand {
+  gap: 0;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+  font-size: 1.25rem;
+}
+
+/* Texte secondaire un peu plus grand partout */
+.text-sm {
+  font-size: 1.125rem;
+  line-height: 1.55;
+}
+
+.text-xs {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.text-base {
+  font-size: 1.25rem;
+  line-height: 1.6;
+}
+
+/* Liste déroulante — flèche visible (glass-panel ne doit pas écraser l’image) */
+.glass-panel.select-field {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  padding-right: 2.75rem;
+  background-color: rgba(255, 255, 255, 0.38);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%2357534e' d='M5.25 7.5 10 13.25 14.75 7.5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1.35rem 1.35rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: inherit;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #1c1917;
+}
+
+/* Image événement — bien visible (thème light) */
+.app-bg-image {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-image: url('/images/event-background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+/* Voile clair léger — laisse voir la photo */
+.app-bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 20%, rgba(255, 252, 248, 0.35), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 0% 100%, rgba(250, 245, 238, 0.25), transparent),
+    linear-gradient(
+      180deg,
+      rgba(255, 252, 248, 0.42) 0%,
+      rgba(250, 246, 240, 0.48) 45%,
+      rgba(255, 250, 245, 0.52) 100%
+    );
+}
+
+#root {
+  position: relative;
+  z-index: 0;
+}
+
+/* Panneaux verre — light + transparents (background visible) */
+.glass-panel {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.38);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 4px 24px rgba(94, 80, 64, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.glass-panel-hover:hover {
+  border-color: rgba(184, 160, 120, 0.5);
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow:
+    0 8px 32px rgba(154, 132, 104, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-velora {
+  box-shadow:
+    0 2px 8px rgba(94, 80, 64, 0.08),
+    0 8px 24px rgba(154, 132, 104, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.shadow-velora-lg {
+  box-shadow:
+    0 4px 16px rgba(94, 80, 64, 0.1),
+    0 16px 40px rgba(154, 132, 104, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #5e5040 0%, #9a8468 35%, #b8a078 60%, #7d6b54 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Logo — PNG transparent, ombre douce */
+.logo-velora {
+  display: block;
+  image-rendering: auto;
+  background: none !important;
+  box-shadow: none;
+  filter: drop-shadow(0 6px 14px rgba(154, 132, 104, 0.3));
+}
+
+.btn-glass {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  font-size: 1.375rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #292524;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(94, 80, 64, 0.06);
+}
+
+.btn-glass:hover {
+  border-color: rgba(154, 132, 104, 0.5);
+  background: rgba(255, 255, 255, 0.9);
+  color: #292524;
+  box-shadow: 0 4px 16px rgba(154, 132, 104, 0.12);
+}
+
+.btn-glass-accent {
+  border-color: rgba(184, 160, 120, 0.45);
+  background: rgba(255, 255, 255, 0.48);
+  color: #5e5040;
+}
+
+.btn-glass-accent:hover {
+  border-color: rgba(184, 160, 120, 0.6);
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(184, 160, 120, 0.18);
+}
+
+/* ——— Mobile uniquement (inspection téléphone) ——— */
+@media (max-width: 767px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  body {
+    font-size: 1rem;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font-size: 1rem;
+  }
+
+  input[type='date'],
+  input[type='time'],
+  input[type='datetime-local'] {
+    display: block;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .text-sm {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .text-xs {
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .text-base {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .app-bg-image {
+    background-attachment: scroll;
+  }
+
+  .btn-glass {
+    font-size: 1rem;
+  }
+}
