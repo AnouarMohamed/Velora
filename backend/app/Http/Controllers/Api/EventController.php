@@ -285,11 +285,12 @@ class EventController extends Controller
     public function assignOrganizer(Request $request, Event $event)
     {
         $data = $request->validate([
-            'organizer_id' => ['required', 'exists:users,id'],
+            'organizer_id' => ['required', 'string'],
         ]);
 
-        $organizer = \App\Models\User::where('id', $data['organizer_id'])
-            ->whereIn('role', [\App\Models\User::ROLE_ORGANIZER, \App\Models\User::ROLE_ADMIN])
+        $organizer = User::query()
+            ->whereKey($data['organizer_id'])
+            ->whereIn('role', [User::ROLE_ORGANIZER, User::ROLE_ADMIN])
             ->firstOrFail();
 
         $event->update(['organizer_id' => $organizer->id]);

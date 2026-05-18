@@ -65,6 +65,7 @@ class EventRequestController extends Controller
 
         $eventRequest = EventRequest::create([
             ...$data,
+            'user_id' => $user->id,
             'image_path' => $imagePath,
             'status' => 'pending',
         ]);

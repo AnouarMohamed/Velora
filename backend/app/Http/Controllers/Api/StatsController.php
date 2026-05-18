@@ -9,7 +9,6 @@ use App\Models\Payment;
 use App\Models\Registration;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class StatsController extends Controller
 {
@@ -44,7 +43,8 @@ class StatsController extends Controller
             ->withCount([
                 'registrations as tickets_count' => fn ($q) => $q->where('payment_status', 'paid'),
             ])
-            ->orderByRaw('COALESCE(end_at, start_at) DESC')
+            ->orderByDesc('end_at')
+            ->orderByDesc('start_at')
             ->get()
             ->map($formatPastEvent)
             ->values()
@@ -52,7 +52,10 @@ class StatsController extends Controller
 
         return response()->json([
             'users_total' => User::count(),
-            'users_by_role' => User::query()->select('role', DB::raw('count(*) as c'))->groupBy('role')->pluck('c', 'role'),
+            'users_by_role' => User::query()
+                ->get(['role'])
+                ->groupBy('role')
+                ->map(fn ($users) => $users->count()),
             'events_total' => Event::count(),
             'events_published' => Event::where('status', 'published')->count(),
             'registrations_total' => Registration::count(),
@@ -128,7 +131,8 @@ class StatsController extends Controller
 
         $pastEvents = (clone $clientEventsQuery)
             ->finished()
-            ->orderByRaw('COALESCE(end_at, start_at) DESC')
+            ->orderByDesc('end_at')
+            ->orderByDesc('start_at')
             ->get()
             ->map($formatEvent)
             ->values()

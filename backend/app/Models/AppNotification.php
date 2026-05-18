@@ -2,31 +2,34 @@
 
 namespace App\Models;
 
-use MongoDB\Laravel\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use MongoDB\Laravel\Eloquent\Model;
 
 class AppNotification extends Model
 {
+    protected $connection = 'mongodb';
+
+    protected $table = 'app_notifications';
+
     protected $fillable = [
         'user_id',
+        'type',
         'title',
         'message',
-        'type',
-        'is_read',
         'data',
+        'read_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_read' => 'boolean',
             'data' => 'array',
+            'read_at' => 'datetime',
         ];
     }
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class) ;
+        return $this->belongsTo(User::class);
     }
 }
-

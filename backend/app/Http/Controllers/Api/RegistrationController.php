@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\Payment;
 use App\Models\Registration;
+use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,7 +43,7 @@ class RegistrationController extends Controller
 
     public function store(Request $request, Event $event)
     {
-        abort_unless($request->user()->role === \App\Models\User::ROLE_PARTICIPANT, 403);
+        abort_unless($request->user()->role === User::ROLE_PARTICIPANT, 403);
 
         if ($event->status !== 'published') {
             return response()->json(['message' => 'Événement non ouvert aux inscriptions.'], 422);
@@ -50,7 +51,7 @@ class RegistrationController extends Controller
 
         return DB::transaction(function () use ($request, $event) {
             $event->refresh();
-            $locked = Event::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
+            $locked = Event::query()->whereKey($event->id)->firstOrFail();
 
             if ($locked->registered_count >= $locked->capacity) {
                 return response()->json(['message' => 'Événement complet.'], 422);
@@ -64,6 +65,15 @@ class RegistrationController extends Controller
                 return response()->json(['message' => 'Déjà inscrit.', 'registration' => $existing], 422);
             }
 
+            $incremented = Event::query()
+                ->whereKey($locked->id)
+                ->where('registered_count', '<', $locked->capacity)
+                ->increment('registered_count');
+
+            if (! $incremented) {
+                return response()->json(['message' => 'Événement complet.'], 422);
+            }
+
             $registration = Registration::create([
                 'event_id' => $locked->id,
                 'user_id' => $request->user()->id,
@@ -72,9 +82,8 @@ class RegistrationController extends Controller
                 'ticket_code' => (string) Str::uuid(),
                 'amount' => $locked->ticket_price,
                 'paid_at' => (float) $locked->ticket_price <= 0 ? now() : null,
+                'registered_at' => now(),
             ]);
-
-            $locked->increment('registered_count');
 
             if ((float) $locked->ticket_price <= 0) {
                 Payment::create([
@@ -98,7 +107,7 @@ class RegistrationController extends Controller
     {
         $user = $request->user();
         abort_unless($registration->user_id === $user->id, 403);
-        abort_unless($user->role === \App\Models\User::ROLE_PARTICIPANT, 403);
+        abort_unless($user->role === User::ROLE_PARTICIPANT, 403);
 
         if ($registration->payment_status === 'paid') {
             return response()->json(['message' => 'Déjà payé.', 'registration' => $registration]);
@@ -132,7 +141,7 @@ class RegistrationController extends Controller
     {
         $user = $request->user();
         abort_unless($registration->user_id === $user->id, 403);
-        abort_unless($user->role === \App\Models\User::ROLE_PARTICIPANT, 403);
+        abort_unless($user->role === User::ROLE_PARTICIPANT, 403);
 
         if ($registration->payment_status === 'paid') {
             return response()->json([
@@ -141,12 +150,12 @@ class RegistrationController extends Controller
         }
 
         return DB::transaction(function () use ($registration) {
-            $event = Event::query()->whereKey($registration->event_id)->lockForUpdate()->firstOrFail();
             $registration->delete();
 
-            if ($event->registered_count > 0) {
-                $event->decrement('registered_count');
-            }
+            Event::query()
+                ->whereKey($registration->event_id)
+                ->where('registered_count', '>', 0)
+                ->decrement('registered_count');
 
             return response()->json(['message' => 'Inscription annulée.']);
         });
@@ -154,7 +163,7 @@ class RegistrationController extends Controller
 
     public function myRegistrationForEvent(Request $request, Event $event)
     {
-        abort_unless($request->user()->role === \App\Models\User::ROLE_PARTICIPANT, 403);
+        abort_unless($request->user()->role === User::ROLE_PARTICIPANT, 403);
 
         $registration = Registration::query()
             ->where('user_id', $request->user()->id)

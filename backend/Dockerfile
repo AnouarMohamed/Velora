@@ -8,16 +8,14 @@ RUN apk add --no-cache \
     libzip-dev \
     libxml2-dev \
     openssl-dev \
-    sqlite-dev \
-    mariadb-connector-c-dev \
     g++ \
     make \
     autoconf \
     pkgconf \
     oniguruma-dev
 
-RUN docker-php-ext-install pdo pdo_mysql pdo_sqlite zip
-RUN pecl install mongodb && docker-php-ext-enable mongodb
+RUN docker-php-ext-install zip
+RUN pecl install mongodb redis && docker-php-ext-enable mongodb redis
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 

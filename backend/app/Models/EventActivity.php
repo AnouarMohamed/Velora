@@ -2,25 +2,30 @@
 
 namespace App\Models;
 
-use MongoDB\Laravel\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use MongoDB\Laravel\Eloquent\Model;
 
 class EventActivity extends Model
 {
+    protected $connection = 'mongodb';
+
+    protected $table = 'event_activities';
+
     protected $fillable = [
         'event_id',
         'title',
         'description',
-        'start_at',
-        'end_at',
+        'starts_at',
+        'ends_at',
+        'sort_order',
         'location',
     ];
 
     protected function casts(): array
     {
         return [
-            'start_at' => 'datetime',
-            'end_at' => 'datetime',
+            'starts_at' => 'datetime',
+            'ends_at' => 'datetime',
         ];
     }
 
@@ -29,4 +34,3 @@ class EventActivity extends Model
         return $this->belongsTo(Event::class);
     }
 }
-
