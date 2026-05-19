@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
 
 permissions:
   contents: read
@@ -13,10 +13,6 @@ jobs:
   backend-ci:
     runs-on: ubuntu-latest
     services:
-      mongodb:
-        image: mongo:latest
-        ports:
-          - 27017:27017
       redis:
         image: redis:alpine
         ports:
@@ -35,12 +31,29 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, readline, mongodb
+          php-version: "8.4"
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, bcmath, soap, intl, readline, mongodb, redis
           coverage: none
 
-      - name: Initialize MongoDB Replica Set
-        run: echo "Replica set initialization skipped for CI service container."
+      - name: Start MongoDB Replica Set
+        run: |
+          docker run -d --name mongodb-rs -p 27017:27017 mongo:7 mongod --replSet rs0 --bind_ip_all
+
+          for i in {1..30}; do
+            if docker exec mongodb-rs mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep -q 1; then
+              break
+            fi
+            sleep 2
+          done
+
+          docker exec mongodb-rs mongosh --quiet --eval 'try { rs.status().ok } catch (e) { rs.initiate({_id: "rs0", members: [{_id: 0, host: "127.0.0.1:27017"}]}).ok }'
+
+          for i in {1..30}; do
+            if docker exec mongodb-rs mongosh --quiet --eval 'rs.status().members[0].stateStr' | grep -q PRIMARY; then
+              break
+            fi
+            sleep 2
+          done
 
       - name: Get Composer Cache Directory
         id: composer-cache
@@ -66,12 +79,12 @@ jobs:
         run: ./vendor/bin/pint --test
 
       - name: Static Analysis (PHPStan)
-        run: ./vendor/bin/phpstan analyse
+        run: ./vendor/bin/phpstan analyse --memory-limit=512M
 
       - name: Run Tests
         run: php artisan test
         env:
-          DB_DSN: mongodb://localhost:27017
+          DB_DSN: mongodb://127.0.0.1:27017/?replicaSet=rs0
           DB_DATABASE: velora_testing
 
       - name: Security Audit (Composer)
@@ -88,8 +101,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
@@ -115,12 +128,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: backend/package.json
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci --ignore-scripts
 
       - name: Run Build
         run: npm run build
@@ -139,42 +152,44 @@ jobs:
       - name: Run Trivy vulnerability scanner (Backend Image)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'backend:latest'
-          format: 'table'
-          exit-code: '1'
+          image-ref: backend:latest
+          format: table
+          exit-code: "1"
           ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
 
       - name: Run Trivy vulnerability scanner (Frontend Image)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'frontend:latest'
-          format: 'table'
-          exit-code: '1'
+          image-ref: frontend:latest
+          format: table
+          exit-code: "1"
           ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
 
   security-scan:
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0
 
       - name: Run Trivy vulnerability scanner (Repo)
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
+          scan-type: fs
           ignore-unfixed: true
-          format: 'table'
-          exit-code: '1'
-          severity: 'CRITICAL,HIGH'
+          format: table
+          exit-code: "1"
+          severity: CRITICAL,HIGH
 
       - name: SonarCloud Scan
-        if: ${{ secrets.SONAR_TOKEN != '' }}
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}

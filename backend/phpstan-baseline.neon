@@ -1,0 +1,571 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$image_path\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/SyncEventImages.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\EventActivity\:\:\$event_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/EventActivityController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/EventController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$contact_email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/EventRequestController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$image_path\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/EventRequestController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/EventRequestController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Api/EventRequestController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/EventRequestController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\EventTask\:\:\$event_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/EventTaskController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Feedback\:\:\$comment\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Feedback\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Feedback\:\:\$event_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Feedback\:\:\$rating\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Feedback\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$contact_email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/FeedbackController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AppNotification\:\:\$read_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/NotificationController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AppNotification\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/NotificationController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Registration\:\:\$payment_status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/RegistrationController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Registration\:\:\$ticket_code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/RegistrationController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Registration\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Api/RegistrationController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/Api/RegistrationController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$location\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/RegistrationController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/RegistrationController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$start_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/RegistrationController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/RegistrationController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Registration\:\:\$event_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/StaffRegistrationController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Registration\:\:\$payment_status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/StaffRegistrationController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Api/StaffRegistrationController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$capacity\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$description\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$end_at\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$location\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$registered_count\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$start_at\.$#'
+			identifier: property.notFound
+			count: 6
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$ticket_price\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$tickets_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$contact_email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$contact_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$registrations_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Database\\Query\\Expression\:\:toArray\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Event\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 3
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\User\>\:\:raw\(\) expects float\|int\|literal\-string, Closure\(mixed\)\: mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>registrations_count" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/StatsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Middleware/EnsureRole.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$created_by\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Event.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$organizer_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Event.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$start_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Event.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$image_path\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Event.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Event.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$event_request_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/EventRequest.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/EventRequest.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/User.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$registered_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/EventManagementService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Services/EventManagementService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/EventManagementService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$description\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/EventRequestReviewService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$image_path\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/EventRequestReviewService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$location\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/EventRequestReviewService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/EventRequestReviewService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$created_by\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$organizer_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 7
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$contact_email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Feedback\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 11
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 8
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Parameter \#1 \$event of static method App\\Services\\NotificationService\:\:clientUserForEvent\(\) expects App\\Models\\Event, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Parameter \#1 \$event of static method App\\Services\\NotificationService\:\:organizerIdsForEvent\(\) expects App\\Models\\Event, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Parameter \#1 \$request of static method App\\Services\\NotificationService\:\:clientUserForRequest\(\) expects App\\Models\\EventRequest, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 4
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>title" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$capacity\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/RegistrationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$registered_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/RegistrationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/RegistrationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Event\:\:\$ticket_price\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/RegistrationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Registration\:\:\$amount\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/RegistrationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Registration\:\:\$event_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/RegistrationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Registration\:\:\$payment_status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/RegistrationService.php

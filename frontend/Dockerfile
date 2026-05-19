@@ -2,6 +2,8 @@ FROM node:22-alpine
 
 WORKDIR /app
 
+RUN npm install -g npm@11.14.1
+
 COPY docker-entrypoint.sh /usr/local/bin/gestionev-frontend-entrypoint
 RUN chmod +x /usr/local/bin/gestionev-frontend-entrypoint
 
