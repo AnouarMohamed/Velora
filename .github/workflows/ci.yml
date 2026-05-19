@@ -1,0 +1,178 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  backend-ci:
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, readline, mongodb
+          coverage: none
+
+      - name: Initialize MongoDB Replica Set
+        run: |
+          docker exec ${{ job.services.mongodb.id }} mongosh --eval "rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]})"
+          sleep 5
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+      - name: Generate key
+        run: php artisan key:generate
+
+      - name: Run Linting (Pint)
+        run: ./vendor/bin/pint --test
+
+      - name: Static Analysis (PHPStan)
+        run: ./vendor/bin/phpstan analyse
+
+      - name: Run Tests
+        run: php artisan test
+        env:
+          DB_DSN: mongodb://localhost:27017/?replicaSet=rs0
+          DB_DATABASE: velora_testing
+
+      - name: Security Audit (Composer)
+        run: composer audit
+
+  frontend-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Linting
+        run: npm run lint
+
+      - name: Run Build
+        run: npm run build
+
+      - name: Security Audit (NPM)
+        run: npm audit --audit-level=high
+
+  backend-assets:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Build
+        run: npm run build
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Backend Image
+        run: docker build -t backend:latest ./backend
+
+      - name: Build Frontend Image
+        run: docker build -t frontend:latest ./frontend
+
+      - name: Run Trivy vulnerability scanner (Backend Image)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'backend:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Run Trivy vulnerability scanner (Frontend Image)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'frontend:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Run Trivy vulnerability scanner (Repo)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
