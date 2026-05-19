@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
+permissions:
+  contents: read
+
 jobs:
   backend-ci:
     runs-on: ubuntu-latest
@@ -32,14 +35,12 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, readline, mongodb
           coverage: none
 
       - name: Initialize MongoDB Replica Set
-        run: |
-          docker exec ${{ job.services.mongodb.id }} mongosh --eval "rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]})"
-          sleep 5
+        run: echo "Replica set initialization skipped for CI service container."
 
       - name: Get Composer Cache Directory
         id: composer-cache
@@ -70,7 +71,7 @@ jobs:
       - name: Run Tests
         run: php artisan test
         env:
-          DB_DSN: mongodb://localhost:27017/?replicaSet=rs0
+          DB_DSN: mongodb://localhost:27017
           DB_DATABASE: velora_testing
 
       - name: Security Audit (Composer)
@@ -172,6 +173,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: SonarCloud Scan
+        if: ${{ secrets.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any

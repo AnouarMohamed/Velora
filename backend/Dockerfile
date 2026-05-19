@@ -13,6 +13,7 @@ RUN apk add --no-cache \
     autoconf \
     pkgconf \
     oniguruma-dev
+RUN apk upgrade --no-cache
 
 RUN docker-php-ext-install zip
 RUN pecl install mongodb redis && docker-php-ext-enable mongodb redis
