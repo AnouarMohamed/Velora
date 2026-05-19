@@ -14,6 +14,12 @@ class EventRequest extends Model
     use HasPublicImage;
     use StoresMoneyAsCents;
 
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_REJECTED = 'rejected';
+
     protected $connection = 'mongodb';
 
     protected $table = 'event_requests';
@@ -68,42 +74,5 @@ class EventRequest extends Model
     public function event(): HasOne
     {
         return $this->hasOne(Event::class);
-    }
-
-    public static function clientBlockingReason(string $email): ?string
-    {
-        if (static::query()->where('contact_email', $email)->where('status', 'pending')->exists()) {
-            return 'pending';
-        }
-
-        $approvedRequestIds = static::query()
-            ->where('contact_email', $email)
-            ->where('status', 'approved')
-            ->pluck('id')
-            ->all();
-
-        if ($approvedRequestIds === []) {
-            return null;
-        }
-
-        $eventsByRequestId = Event::query()
-            ->whereIn('event_request_id', $approvedRequestIds)
-            ->get()
-            ->keyBy(fn ($event) => (string) $event->event_request_id);
-
-        foreach ($approvedRequestIds as $approvedRequestId) {
-            $event = $eventsByRequestId->get((string) $approvedRequestId);
-
-            if (! $event || $event->status !== 'published' || ! $event->isFinished()) {
-                return 'active_event';
-            }
-        }
-
-        return null;
-    }
-
-    public static function clientHasBlockingRequest(string $email): bool
-    {
-        return static::clientBlockingReason($email) !== null;
     }
 }
