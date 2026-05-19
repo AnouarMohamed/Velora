@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Events;
 
+use App\Rules\MongoObjectId;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AssignEventOrganizerRequest extends FormRequest
@@ -15,7 +16,7 @@ class AssignEventOrganizerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'organizer_id' => ['required', 'string'],
+            'organizer_id' => ['required', 'string', new MongoObjectId],
         ];
     }
 }

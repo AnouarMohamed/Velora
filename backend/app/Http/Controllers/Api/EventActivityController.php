@@ -13,7 +13,10 @@ class EventActivityController extends Controller
     {
         abort_unless($this->canManage($request, $event), 403);
 
-        return response()->json($event->activities()->orderBy('sort_order')->orderBy('starts_at')->get());
+        return response()->json($event->activities()
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('starts_at', 'asc')
+            ->get());
     }
 
     public function store(Request $request, Event $event)

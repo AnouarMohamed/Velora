@@ -27,7 +27,7 @@ class RegistrationController extends Controller
             'end_at',
             'location',
             'room',
-            'ticket_price',
+            'ticket_price_cents',
             'status',
             'image_path',
         ];
@@ -102,7 +102,7 @@ class RegistrationController extends Controller
         $query = Registration::query()
             ->where('user_id', $request->user()->id)
             ->with($this->registrationEventWith())
-            ->latest();
+            ->orderBy('created_at', 'desc');
 
         if ($request->filled('payment_status')) {
             $status = $request->string('payment_status')->toString();

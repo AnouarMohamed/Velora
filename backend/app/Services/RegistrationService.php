@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\Payment;
 use App\Models\Registration;
 use App\Models\User;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -14,7 +15,7 @@ class RegistrationService
 {
     public function register(User $participant, Event $event): Registration
     {
-        if ($event->status !== 'published') {
+        if ($event->status !== Event::STATUS_PUBLISHED) {
             throw new RegistrationException('Événement non ouvert aux inscriptions.');
         }
 
@@ -43,8 +44,8 @@ class RegistrationService
                 throw new RegistrationException('Événement complet.');
             }
 
-            $amount = (float) $freshEvent->ticket_price;
-            $isFree = $amount <= 0;
+            $amountCents = Money::toCents($freshEvent->ticket_price);
+            $isFree = $amountCents <= 0;
 
             $registration = Registration::create([
                 'event_id' => $freshEvent->id,
@@ -82,7 +83,7 @@ class RegistrationService
         }
 
         return DB::transaction(function () use ($registration) {
-            $amount = (float) $registration->amount;
+            $amount = $registration->amount;
 
             $updated = Registration::query()
                 ->whereKey($registration->id)

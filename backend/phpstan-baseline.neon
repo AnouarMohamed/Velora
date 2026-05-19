@@ -301,12 +301,6 @@ parameters:
 			path: app/Http/Controllers/Api/StatsController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Event\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 3
-			path: app/Http/Controllers/Api/StatsController.php
-
-		-
 			message: '#^Parameter \#1 \$value of static method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\User\>\:\:raw\(\) expects float\|int\|literal\-string, Closure\(mixed\)\: mixed given\.$#'
 			identifier: argument.type
 			count: 1
