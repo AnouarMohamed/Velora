@@ -1,5 +1,6 @@
 # VELORA - Systeme de gestion d'evenements
 
+
 Application React + Laravel pour gerer les demandes d'evenements, les publications, les inscriptions, les paiements simules, les avis et les notifications.
 
 ## Stack locale
