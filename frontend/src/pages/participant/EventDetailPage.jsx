@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Settings, Ticket, X } from 'lucide-react';
 import api from '../../lib/api';
@@ -51,9 +51,12 @@ export function EventDetailPage() {
   const isParticipant = hasRole('participant');
   const isStaff = hasRole('admin') || hasRole('organizer') || hasRole('client');
 
-  const loadEvent = () => api.get(`/events/${id}`).then((r) => setEvent(r.data));
+  const loadEvent = useCallback(
+    () => api.get(`/events/${id}`).then((r) => setEvent(r.data)),
+    [id],
+  );
 
-  const loadRegistration = () => {
+  const loadRegistration = useCallback(() => {
     if (!isParticipant) {
       setRegistration(null);
       return Promise.resolve();
@@ -61,16 +64,19 @@ export function EventDetailPage() {
     return api.get(`/events/${id}/my-registration`).then((r) => {
       setRegistration(r.data.registration ?? null);
     });
-  };
+  }, [id, isParticipant]);
 
-  const load = () => Promise.all([loadEvent(), loadRegistration()]);
+  const load = useCallback(
+    () => Promise.all([loadEvent(), loadRegistration()]),
+    [loadEvent, loadRegistration],
+  );
 
   const mergeRegistrationEvent = (reg) =>
     reg ? { ...reg, event: reg.event ?? event } : reg;
 
   useEffect(() => {
     void load();
-  }, [id, isParticipant]);
+  }, [load]);
 
   const register = async () => {
     try {
@@ -109,7 +115,9 @@ export function EventDetailPage() {
       setMsg('Paiement confirmé.');
     } catch (e) {
       const err = e;
-      throw new Error(err.response?.data?.message || 'Le paiement a échoué.');
+      throw new Error(err.response?.data?.message || 'Le paiement a échoué.', {
+        cause: e,
+      });
     } finally {
       setPaying(false);
     }

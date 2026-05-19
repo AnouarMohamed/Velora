@@ -10,10 +10,6 @@ jobs:
   backend-ci:
     runs-on: ubuntu-latest
     services:
-      mongodb:
-        image: mongo:latest
-        ports:
-          - 27017:27017
       redis:
         image: redis:alpine
         ports:
@@ -33,13 +29,28 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, readline, mongodb
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, bcmath, soap, intl, readline, mongodb, redis
           coverage: none
 
-      - name: Initialize MongoDB Replica Set
+      - name: Start MongoDB Replica Set
         run: |
-          docker exec ${{ job.services.mongodb.id }} mongosh --eval "rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]})"
-          sleep 5
+          docker run -d --name mongodb-rs -p 27017:27017 mongo:7 mongod --replSet rs0 --bind_ip_all
+
+          for i in {1..30}; do
+            if docker exec mongodb-rs mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep -q 1; then
+              break
+            fi
+            sleep 2
+          done
+
+          docker exec mongodb-rs mongosh --quiet --eval 'try { rs.status().ok } catch (e) { rs.initiate({_id: "rs0", members: [{_id: 0, host: "127.0.0.1:27017"}]}).ok }'
+
+          for i in {1..30}; do
+            if docker exec mongodb-rs mongosh --quiet --eval 'rs.status().members[0].stateStr' | grep -q PRIMARY; then
+              break
+            fi
+            sleep 2
+          done
 
       - name: Get Composer Cache Directory
         id: composer-cache
@@ -65,12 +76,12 @@ jobs:
         run: ./vendor/bin/pint --test
 
       - name: Static Analysis (PHPStan)
-        run: ./vendor/bin/phpstan analyse
+        run: ./vendor/bin/phpstan analyse --memory-limit=512M
 
       - name: Run Tests
         run: php artisan test
         env:
-          DB_DSN: mongodb://localhost:27017/?replicaSet=rs0
+          DB_DSN: mongodb://127.0.0.1:27017/?replicaSet=rs0
           DB_DATABASE: velora_testing
 
       - name: Security Audit (Composer)
@@ -116,10 +127,10 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: backend/package.json
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci --ignore-scripts
 
       - name: Run Build
         run: npm run build
@@ -157,6 +168,8 @@ jobs:
 
   security-scan:
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -172,7 +185,8 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: SonarCloud Scan
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
