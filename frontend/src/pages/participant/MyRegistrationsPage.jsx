@@ -115,11 +115,8 @@ export function MyRegistrationsPage() {
         ),
       );
       setPayTarget(null);
-    } catch (e) {
-      const err = e;
-      throw new Error(err.response?.data?.message || 'Le paiement a échoué.', {
-        cause: e,
-      });
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Le paiement a échoué.', { cause: error });
     } finally {
       setPaying(false);
     }

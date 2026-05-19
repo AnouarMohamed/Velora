@@ -56,15 +56,48 @@ return new class extends Migration
 
     public function down(): void
     {
-        foreach ($this->collections as $collection) {
-            $this->collection($collection)->drop();
-        }
+        // Drop only the indexes created in up(), not the collections themselves
+        $this->dropIndex('users', 'users_email_unique');
+        $this->dropIndex('users', 'users_role_idx');
+
+        $this->dropIndex('personal_access_tokens', 'tokens_token_unique');
+        $this->dropIndex('personal_access_tokens', 'tokens_tokenable_idx');
+        $this->dropIndex('personal_access_tokens', 'tokens_expires_at_idx');
+
+        $this->dropIndex('event_requests', 'event_requests_contact_status_idx');
+        $this->dropIndex('event_requests', 'event_requests_status_created_idx');
+
+        $this->dropIndex('events', 'events_event_request_unique');
+        $this->dropIndex('events', 'events_status_start_idx');
+        $this->dropIndex('events', 'events_organizer_status_idx');
+        $this->dropIndex('events', 'events_creator_status_idx');
+
+        $this->dropIndex('event_tasks', 'event_tasks_event_due_idx');
+        $this->dropIndex('event_activities', 'event_activities_event_order_idx');
+
+        $this->dropIndex('registrations', 'registrations_event_user_unique');
+        $this->dropIndex('registrations', 'registrations_user_payment_idx');
+        $this->dropIndex('registrations', 'registrations_event_payment_idx');
+        $this->dropIndex('registrations', 'registrations_ticket_code_unique');
+
+        $this->dropIndex('payments', 'payments_registration_idx');
+        $this->dropIndex('payments', 'payments_status_idx');
+
+        $this->dropIndex('feedbacks', 'feedbacks_event_user_unique');
+        $this->dropIndex('feedbacks', 'feedbacks_event_status_idx');
+
+        $this->dropIndex('app_notifications', 'notifications_user_read_created_idx');
     }
 
     /** @param array<string, int> $keys @param array<string, mixed> $options */
     private function index(string $collection, array $keys, array $options): void
     {
         $this->collection($collection)->createIndex($keys, $options);
+    }
+
+    private function dropIndex(string $collection, string $indexName): void
+    {
+        $this->collection($collection)->dropIndex($indexName);
     }
 
     private function collection(string $name): Collection
