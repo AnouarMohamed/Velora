@@ -3,70 +3,49 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\EventActivities\StoreEventActivityRequest;
+use App\Http\Requests\EventActivities\UpdateEventActivityRequest;
 use App\Models\Event;
 use App\Models\EventActivity;
+use App\Models\User;
+use App\Services\Events\EventActivityService;
 use Illuminate\Http\Request;
 
 class EventActivityController extends Controller
 {
+    public function __construct(private readonly EventActivityService $activities) {}
+
     public function index(Request $request, Event $event)
     {
-        abort_unless($this->canManage($request, $event), 403);
-
-        return response()->json($event->activities()
-            ->orderBy('sort_order', 'asc')
-            ->orderBy('starts_at', 'asc')
-            ->get());
+        return response()->json($this->activities->list($this->actor($request), $event));
     }
 
-    public function store(Request $request, Event $event)
+    public function store(StoreEventActivityRequest $request, Event $event)
     {
-        abort_unless($this->canManage($request, $event), 403);
-
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'starts_at' => ['nullable', 'date'],
-            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-        ]);
-
-        $activity = $event->activities()->create($data + ['sort_order' => $data['sort_order'] ?? 0]);
+        $activity = $this->activities->create($this->actor($request), $event, $request->validated());
 
         return response()->json($activity, 201);
     }
 
-    public function update(Request $request, Event $event, EventActivity $eventActivity)
+    public function update(UpdateEventActivityRequest $request, Event $event, EventActivity $eventActivity)
     {
-        abort_unless($eventActivity->event_id === $event->id, 404);
-        abort_unless($this->canManage($request, $event), 403);
-
-        $data = $request->validate([
-            'title' => ['sometimes', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'starts_at' => ['nullable', 'date'],
-            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-        ]);
-
-        $eventActivity->update($data);
-
-        return response()->json($eventActivity->fresh());
+        return response()->json($this->activities->update($this->actor($request), $event, $eventActivity, $request->validated()));
     }
 
     public function destroy(Request $request, Event $event, EventActivity $eventActivity)
     {
-        abort_unless($eventActivity->event_id === $event->id, 404);
-        abort_unless($this->canManage($request, $event), 403);
-        $eventActivity->delete();
+        $this->activities->delete($this->actor($request), $event, $eventActivity);
 
         return response()->json(null, 204);
     }
 
-    private function canManage(Request $request, Event $event): bool
+    private function actor(Request $request): User
     {
         $user = $request->user();
+        if (! $user instanceof User) {
+            abort(401);
+        }
 
-        return $user->isAdmin() || $event->isOrganizer($user);
+        return $user;
     }
 }

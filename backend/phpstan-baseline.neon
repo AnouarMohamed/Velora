@@ -7,12 +7,6 @@ parameters:
 			path: app/Console/Commands/SyncEventImages.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\EventActivity\:\:\$event_id\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/Api/EventActivityController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Event\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
@@ -47,12 +41,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/Api/EventRequestController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\EventTask\:\:\$event_id\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/Api/EventTaskController.php
 
 		-
 			message: '#^Access to an undefined property App\\Models\\AppNotification\:\:\$read_at\.$#'

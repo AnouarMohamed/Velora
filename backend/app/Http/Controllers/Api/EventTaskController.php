@@ -3,64 +3,49 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\EventTasks\StoreEventTaskRequest;
+use App\Http\Requests\EventTasks\UpdateEventTaskRequest;
 use App\Models\Event;
 use App\Models\EventTask;
+use App\Models\User;
+use App\Services\Events\EventTaskService;
 use Illuminate\Http\Request;
 
 class EventTaskController extends Controller
 {
+    public function __construct(private readonly EventTaskService $tasks) {}
+
     public function index(Request $request, Event $event)
     {
-        abort_unless($this->canManage($request, $event), 403);
-
-        return response()->json($event->tasks()->orderBy('due_at', 'asc')->get());
+        return response()->json($this->tasks->list($this->actor($request), $event));
     }
 
-    public function store(Request $request, Event $event)
+    public function store(StoreEventTaskRequest $request, Event $event)
     {
-        abort_unless($this->canManage($request, $event), 403);
-
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'due_at' => ['nullable', 'date'],
-        ]);
-
-        $task = $event->tasks()->create($data + ['is_done' => false]);
+        $task = $this->tasks->create($this->actor($request), $event, $request->validated());
 
         return response()->json($task, 201);
     }
 
-    public function update(Request $request, Event $event, EventTask $eventTask)
+    public function update(UpdateEventTaskRequest $request, Event $event, EventTask $eventTask)
     {
-        abort_unless($eventTask->event_id === $event->id, 404);
-        abort_unless($this->canManage($request, $event), 403);
-
-        $data = $request->validate([
-            'title' => ['sometimes', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'is_done' => ['sometimes', 'boolean'],
-            'due_at' => ['nullable', 'date'],
-        ]);
-
-        $eventTask->update($data);
-
-        return response()->json($eventTask->fresh());
+        return response()->json($this->tasks->update($this->actor($request), $event, $eventTask, $request->validated()));
     }
 
     public function destroy(Request $request, Event $event, EventTask $eventTask)
     {
-        abort_unless($eventTask->event_id === $event->id, 404);
-        abort_unless($this->canManage($request, $event), 403);
-        $eventTask->delete();
+        $this->tasks->delete($this->actor($request), $event, $eventTask);
 
         return response()->json(null, 204);
     }
 
-    private function canManage(Request $request, Event $event): bool
+    private function actor(Request $request): User
     {
         $user = $request->user();
+        if (! $user instanceof User) {
+            abort(401);
+        }
 
-        return $user->isAdmin() || $event->isOrganizer($user);
+        return $user;
     }
 }
