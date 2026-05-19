@@ -3,17 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Users\StoreUserRequest;
+use App\Http\Requests\Users\UpdateUserRequest;
 use App\Models\User;
-use App\Services\NotificationService;
+use App\Services\Users\UserWriteService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
-use Illuminate\Validation\ValidationException;
-use MongoDB\Driver\Exception\BulkWriteException;
 
 class UserAdminController extends Controller
 {
+    public function __construct(private readonly UserWriteService $users) {}
+
     public function index(Request $request)
     {
         $q = User::query()->orderBy('created_at', 'desc');
@@ -34,100 +33,32 @@ class UserAdminController extends Controller
         return response()->json($users);
     }
 
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email'],
-            'password' => ['required', Password::defaults()],
-            'role' => ['required', Rule::in([
-                User::ROLE_ADMIN,
-                User::ROLE_ORGANIZER,
-                User::ROLE_PARTICIPANT,
-                User::ROLE_CLIENT,
-            ])],
-        ]);
-
-        if (User::query()->where('email', $data['email'])->exists()) {
-            throw ValidationException::withMessages([
-                'email' => ['Cette adresse e-mail est déjà utilisée.'],
-            ]);
-        }
-
-        try {
-            $user = User::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => Hash::make($data['password']),
-                'role' => $data['role'],
-            ]);
-        } catch (BulkWriteException $e) {
-            // Handle MongoDB duplicate key error (race condition)
-            if (str_contains($e->getMessage(), 'duplicate key') || str_contains($e->getMessage(), 'E11000')) {
-                throw ValidationException::withMessages([
-                    'email' => ['Cette adresse e-mail est déjà utilisée.'],
-                ]);
-            }
-            throw $e;
-        }
-
-        NotificationService::userRegistered($user);
+        $user = $this->users->create($request->validated());
 
         return response()->json($user, 201);
     }
 
-    public function update(Request $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
-        $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'email'],
-            'password' => ['nullable', Password::defaults()],
-            'role' => ['sometimes', Rule::in([
-                User::ROLE_ADMIN,
-                User::ROLE_ORGANIZER,
-                User::ROLE_PARTICIPANT,
-                User::ROLE_CLIENT,
-            ])],
-        ]);
-
-        if (
-            isset($data['email'])
-            && User::query()->where('email', $data['email'])->whereKeyNot($user->id)->exists()
-        ) {
-            throw ValidationException::withMessages([
-                'email' => ['Cette adresse e-mail est déjà utilisée.'],
-            ]);
-        }
-
-        if (! empty($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        } else {
-            unset($data['password']);
-        }
-
-        try {
-            $user->update($data);
-        } catch (BulkWriteException $e) {
-            // Handle MongoDB duplicate key error (race condition)
-            if (str_contains($e->getMessage(), 'duplicate key') || str_contains($e->getMessage(), 'E11000')) {
-                throw ValidationException::withMessages([
-                    'email' => ['Cette adresse e-mail est déjà utilisée.'],
-                ]);
-            }
-            throw $e;
-        }
-
-        return response()->json($user->fresh());
+        return response()->json($this->users->update($user, $request->validated()));
     }
 
     public function destroy(Request $request, User $user)
     {
-        if ($user->id === $request->user()->id) {
-            return response()->json(['message' => 'Impossible de supprimer votre propre compte.'], 422);
-        }
-
-        $user->delete();
+        $this->users->delete($this->actor($request), $user);
 
         return response()->json(null, 204);
+    }
+
+    private function actor(Request $request): User
+    {
+        $user = $request->user();
+        if (! $user instanceof User) {
+            abort(401);
+        }
+
+        return $user;
     }
 }

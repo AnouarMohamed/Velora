@@ -3,43 +3,22 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
-use App\Services\NotificationService;
+use App\Services\Users\UserWriteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
-use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    public function __construct(private readonly UserWriteService $users) {}
+
+    public function register(RegisterRequest $request)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-            'role' => ['required', 'in:participant,client'],
-        ], [
-            'email.email' => 'L\'adresse e-mail n\'est pas valide.',
-        ]);
-
-        if (User::query()->where('email', $data['email'])->exists()) {
-            throw ValidationException::withMessages([
-                'email' => ['Cette adresse e-mail est déjà utilisée.'],
-            ]);
-        }
-
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role' => $data['role'],
-        ]);
+        $user = $this->users->create($request->validated());
 
         $token = $user->createToken('spa')->plainTextToken;
-
-        NotificationService::userRegistered($user);
 
         return response()->json([
             'token' => $token,
@@ -47,12 +26,9 @@ class AuthController extends Controller
         ], 201);
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
+        $credentials = $request->validated();
 
         if (! Auth::attempt($credentials)) {
             return response()->json(['message' => 'Identifiants invalides.'], 422);
@@ -70,7 +46,7 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $request->user()?->currentAccessToken()?->delete();
 
         return response()->json(['message' => 'Déconnexion réussie.']);
     }
