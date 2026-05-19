@@ -92,6 +92,48 @@ class StaffRegistrationFlowTest extends TestCase
         $this->assertSame(2, $row['paid_registrations_count']);
     }
 
+    public function test_organizer_deletes_unpaid_registration_and_decrements_count(): void
+    {
+        $organizer = User::factory()->create(['role' => User::ROLE_ORGANIZER]);
+        $event = $this->eventFor($organizer, ['registered_count' => 1]);
+        $registration = $this->registration(User::factory()->create(['role' => User::ROLE_PARTICIPANT]), $event);
+
+        Sanctum::actingAs($organizer);
+
+        $this->deleteJson("/api/organizer/registrations/{$registration->id}")
+            ->assertOk()
+            ->assertJsonPath('message', 'Inscription supprimée.');
+
+        $this->assertSame(0, Registration::query()->count());
+        $this->assertSame(0, (int) $event->fresh()->registered_count);
+    }
+
+    public function test_staff_cannot_delete_paid_or_unowned_registration(): void
+    {
+        $organizer = User::factory()->create(['role' => User::ROLE_ORGANIZER]);
+        $otherOrganizer = User::factory()->create(['role' => User::ROLE_ORGANIZER]);
+        $event = $this->eventFor($organizer, ['registered_count' => 1]);
+        $otherEvent = $this->eventFor($otherOrganizer, ['registered_count' => 1]);
+        $paidRegistration = $this->registration(User::factory()->create(['role' => User::ROLE_PARTICIPANT]), $event, [
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+        $otherRegistration = $this->registration(User::factory()->create(['role' => User::ROLE_PARTICIPANT]), $otherEvent);
+
+        Sanctum::actingAs($organizer);
+
+        $this->deleteJson("/api/organizer/registrations/{$paidRegistration->id}")
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Impossible de supprimer une inscription déjà payée.');
+
+        $this->deleteJson("/api/organizer/registrations/{$otherRegistration->id}")
+            ->assertForbidden();
+
+        $this->assertSame(2, Registration::query()->count());
+        $this->assertSame(1, (int) $event->fresh()->registered_count);
+        $this->assertSame(1, (int) $otherEvent->fresh()->registered_count);
+    }
+
     /** @param array<string, mixed> $overrides */
     private function eventFor(User $user, array $overrides = []): Event
     {

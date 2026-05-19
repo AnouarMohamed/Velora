@@ -151,6 +151,63 @@ class RegistrationFlowTest extends TestCase
         $this->assertSame(1, (int) $event->fresh()->registered_count);
     }
 
+    public function test_participant_cannot_manage_another_participants_registration(): void
+    {
+        $owner = $this->user(User::ROLE_PARTICIPANT);
+        $other = $this->user(User::ROLE_PARTICIPANT);
+        $event = $this->publishedEvent(['registered_count' => 1]);
+        $registration = $this->registration($owner, $event);
+
+        Sanctum::actingAs($other);
+
+        $this->postJson("/api/registrations/{$registration->id}/pay")
+            ->assertForbidden();
+
+        $this->deleteJson("/api/registrations/{$registration->id}")
+            ->assertForbidden();
+
+        $this->getJson("/api/registrations/{$registration->id}/ticket")
+            ->assertForbidden();
+
+        $this->assertSame('pending', $registration->fresh()->payment_status);
+        $this->assertSame(1, Registration::query()->count());
+        $this->assertSame(1, (int) $event->fresh()->registered_count);
+    }
+
+    public function test_ticket_download_requires_paid_registration_and_returns_ticket_payload(): void
+    {
+        $participant = $this->user(User::ROLE_PARTICIPANT);
+        $event = $this->publishedEvent([
+            'title' => 'Ticketed Security Summit',
+            'location' => 'Marrakech',
+        ]);
+        $registration = $this->registration($participant, $event, [
+            'payment_status' => 'pending',
+        ]);
+
+        Sanctum::actingAs($participant);
+
+        $this->getJson("/api/registrations/{$registration->id}/ticket")
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Paiement requis pour le billet.');
+
+        $registration->update([
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        $response = $this->get("/api/registrations/{$registration->id}/ticket")
+            ->assertOk()
+            ->assertHeader('content-type', 'application/json');
+
+        $payload = json_decode($response->streamedContent(), true);
+
+        $this->assertSame($registration->ticket_code, $payload['ticket']);
+        $this->assertSame('Ticketed Security Summit', $payload['event']);
+        $this->assertSame($participant->name, $payload['participant']);
+        $this->assertSame('Marrakech', $payload['location']);
+    }
+
     private function user(string $role): User
     {
         return User::factory()->create(['role' => $role]);
