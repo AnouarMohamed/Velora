@@ -9,7 +9,6 @@ use App\Models\Payment;
 use App\Models\Registration;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class StatsController extends Controller
 {
@@ -44,15 +43,32 @@ class StatsController extends Controller
             ->withCount([
                 'registrations as tickets_count' => fn ($q) => $q->where('payment_status', 'paid'),
             ])
-            ->orderByRaw('COALESCE(end_at, start_at) DESC')
             ->get()
+            ->sort(function (Event $a, Event $b) {
+                $aEffectiveEnd = strtotime((string) ($a->end_at ?? $a->start_at));
+                $bEffectiveEnd = strtotime((string) ($b->end_at ?? $b->start_at));
+
+                if ($aEffectiveEnd === $bEffectiveEnd) {
+                    return strtotime((string) $b->start_at) <=> strtotime((string) $a->start_at);
+                }
+
+                return $bEffectiveEnd <=> $aEffectiveEnd;
+            })
             ->map($formatPastEvent)
             ->values()
             ->all();
 
         return response()->json([
             'users_total' => User::count(),
-            'users_by_role' => User::query()->select('role', DB::raw('count(*) as c'))->groupBy('role')->pluck('c', 'role'),
+            'users_by_role' => collect(User::raw(function ($collection) {
+                return $collection->aggregate([
+                    ['$group' => ['_id' => '$role', 'count' => ['$sum' => 1]]],
+                ]);
+            })->toArray())->mapWithKeys(function ($result) {
+                $role = data_get($result, '_id');
+
+                return [(string) ($role ?? '') => (int) data_get($result, 'count', 0)];
+            }),
             'events_total' => Event::count(),
             'events_published' => Event::where('status', 'published')->count(),
             'registrations_total' => Registration::count(),
@@ -128,7 +144,8 @@ class StatsController extends Controller
 
         $pastEvents = (clone $clientEventsQuery)
             ->finished()
-            ->orderByRaw('COALESCE(end_at, start_at) DESC')
+            ->orderByDesc('end_at')
+            ->orderByDesc('start_at')
             ->get()
             ->map($formatEvent)
             ->values()

@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
+use MongoDB\Driver\Exception\BulkWriteException;
 
 class UserAdminController extends Controller
 {
@@ -36,7 +38,7 @@ class UserAdminController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
+            'email' => ['required', 'email'],
             'password' => ['required', Password::defaults()],
             'role' => ['required', Rule::in([
                 User::ROLE_ADMIN,
@@ -46,12 +48,28 @@ class UserAdminController extends Controller
             ])],
         ]);
 
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role' => $data['role'],
-        ]);
+        if (User::query()->where('email', $data['email'])->exists()) {
+            throw ValidationException::withMessages([
+                'email' => ['Cette adresse e-mail est déjà utilisée.'],
+            ]);
+        }
+
+        try {
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'role' => $data['role'],
+            ]);
+        } catch (BulkWriteException $e) {
+            // Handle MongoDB duplicate key error (race condition)
+            if (str_contains($e->getMessage(), 'duplicate key') || str_contains($e->getMessage(), 'E11000')) {
+                throw ValidationException::withMessages([
+                    'email' => ['Cette adresse e-mail est déjà utilisée.'],
+                ]);
+            }
+            throw $e;
+        }
 
         NotificationService::userRegistered($user);
 
@@ -62,7 +80,7 @@ class UserAdminController extends Controller
     {
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'email', Rule::unique('users')->ignore($user->id)],
+            'email' => ['sometimes', 'email'],
             'password' => ['nullable', Password::defaults()],
             'role' => ['sometimes', Rule::in([
                 User::ROLE_ADMIN,
@@ -72,13 +90,32 @@ class UserAdminController extends Controller
             ])],
         ]);
 
+        if (
+            isset($data['email'])
+            && User::query()->where('email', $data['email'])->whereKeyNot($user->id)->exists()
+        ) {
+            throw ValidationException::withMessages([
+                'email' => ['Cette adresse e-mail est déjà utilisée.'],
+            ]);
+        }
+
         if (! empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         } else {
             unset($data['password']);
         }
 
-        $user->update($data);
+        try {
+            $user->update($data);
+        } catch (BulkWriteException $e) {
+            // Handle MongoDB duplicate key error (race condition)
+            if (str_contains($e->getMessage(), 'duplicate key') || str_contains($e->getMessage(), 'E11000')) {
+                throw ValidationException::withMessages([
+                    'email' => ['Cette adresse e-mail est déjà utilisée.'],
+                ]);
+            }
+            throw $e;
+        }
 
         return response()->json($user->fresh());
     }

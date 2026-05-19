@@ -2,12 +2,26 @@
 
 namespace App\Models;
 
-use MongoDB\Laravel\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use MongoDB\Laravel\Eloquent\Model;
 
 class Event extends Model
 {
+    public const STATUS_CANCELLED = 'cancelled';
+
+    public const STATUS_COMPLETED = 'completed';
+
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_PENDING_PUBLICATION = 'pending_publication';
+
+    public const STATUS_PUBLISHED = 'published';
+
+    protected $connection = 'mongodb';
+
+    protected $table = 'events';
+
     protected $appends = ['image_url'];
 
     protected $fillable = [
@@ -104,9 +118,9 @@ class Event extends Model
     {
         return $query->where(function ($q) {
             $q->where('end_at', '>=', now())
-              ->orWhere(function ($q2) {
-                  $q2->whereNull('end_at')->where('start_at', '>=', now());
-              });
+                ->orWhere(function ($q2) {
+                    $q2->whereNull('end_at')->where('start_at', '>=', now());
+                });
         });
     }
 
@@ -114,9 +128,9 @@ class Event extends Model
     {
         return $query->where(function ($q) {
             $q->where('end_at', '<', now())
-              ->orWhere(function ($q2) {
-                  $q2->whereNull('end_at')->where('start_at', '<', now());
-              });
+                ->orWhere(function ($q2) {
+                    $q2->whereNull('end_at')->where('start_at', '<', now());
+                });
         });
     }
 }

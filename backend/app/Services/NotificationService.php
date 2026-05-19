@@ -2,17 +2,17 @@
 
 namespace App\Services;
 
+use App\Models\AppNotification;
 use App\Models\Event;
 use App\Models\EventRequest;
 use App\Models\Feedback;
-use App\Models\AppNotification;
 use App\Models\Registration;
 use App\Models\User;
 
 class NotificationService
 {
     public static function send(
-        int|array $userIds,
+        string|int|array $userIds,
         string $type,
         string $title,
         string $message,
@@ -31,13 +31,13 @@ class NotificationService
         }
     }
 
-    /** @return list<int> */
+    /** @return list<string> */
     public static function adminIds(): array
     {
         return User::query()->where('role', User::ROLE_ADMIN)->pluck('id')->all();
     }
 
-    /** @return list<int> */
+    /** @return list<string> */
     public static function participantIds(): array
     {
         return User::query()->where('role', User::ROLE_PARTICIPANT)->pluck('id')->all();
@@ -61,7 +61,7 @@ class NotificationService
         return self::clientUserForRequest($event->eventRequest);
     }
 
-    /** @return list<int> */
+    /** @return list<string> */
     public static function organizerIdsForEvent(Event $event): array
     {
         $event->loadMissing(['organizer', 'creator']);

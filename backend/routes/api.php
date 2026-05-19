@@ -6,12 +6,14 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventRequestController;
 use App\Http\Controllers\Api\EventTaskController;
 use App\Http\Controllers\Api\FeedbackController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RegistrationController;
 use App\Http\Controllers\Api\StaffRegistrationController;
-use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\UserAdminController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/health', fn () => response()->json(['status' => 'ok']));
 
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');

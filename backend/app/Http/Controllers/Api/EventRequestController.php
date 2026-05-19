@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\EventRequestReviewException;
 use App\Http\Controllers\Controller;
-use App\Models\Event;
 use App\Models\EventRequest;
+use App\Services\EventRequestReviewService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -15,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 class EventRequestController extends Controller
 {
     private const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+
+    public function __construct(private readonly EventRequestReviewService $reviews) {}
 
     public function store(Request $request)
     {
@@ -65,6 +67,7 @@ class EventRequestController extends Controller
 
         $eventRequest = EventRequest::create([
             ...$data,
+            'user_id' => $user->id,
             'image_path' => $imagePath,
             'status' => 'pending',
         ]);
@@ -157,56 +160,18 @@ class EventRequestController extends Controller
             'rejection_reason' => ['required_if:decision,rejected', 'nullable', 'string'],
         ]);
 
-        if ($eventRequest->status !== 'pending') {
-            return response()->json(['message' => 'Cette demande a déjà été traitée.'], 422);
+        try {
+            if ($data['decision'] === 'rejected') {
+                return response()->json($this->reviews->reject(
+                    $eventRequest,
+                    $request->user(),
+                    $data['rejection_reason'] ?? null,
+                ));
+            }
+
+            return response()->json($this->reviews->approve($eventRequest, $request->user()));
+        } catch (EventRequestReviewException $exception) {
+            return response()->json($exception->toResponsePayload(), $exception->status);
         }
-
-        if ($data['decision'] === 'rejected') {
-            $eventRequest->update([
-                'status' => 'rejected',
-                'rejection_reason' => $data['rejection_reason'] ?? null,
-                'reviewed_at' => now(),
-                'reviewed_by_id' => $request->user()->id,
-            ]);
-
-            NotificationService::eventRequestReviewed($eventRequest->fresh(), 'rejected');
-
-            return response()->json($eventRequest->fresh());
-        }
-
-        return DB::transaction(function () use ($request, $eventRequest) {
-            $eventRequest->update([
-                'status' => 'approved',
-                'rejection_reason' => null,
-                'reviewed_at' => now(),
-                'reviewed_by_id' => $request->user()->id,
-            ]);
-
-            $start = $eventRequest->preferred_start ?? now()->addWeek();
-            $end = $eventRequest->preferred_end ?? $start->copy()->addHours(4);
-
-            $event = Event::create([
-                'event_request_id' => $eventRequest->id,
-                'organizer_id' => null,
-                'created_by' => $request->user()->id,
-                'title' => $eventRequest->title,
-                'description' => $eventRequest->description,
-                'image_path' => $eventRequest->image_path,
-                'location' => $eventRequest->location,
-                'start_at' => $start,
-                'end_at' => $end,
-                'capacity' => 100,
-                'registered_count' => 0,
-                'ticket_price' => $eventRequest->ticket_price ?? 0,
-                'status' => 'draft',
-            ]);
-
-            NotificationService::eventRequestReviewed($eventRequest->fresh(), 'approved');
-
-            return response()->json([
-                'event_request' => $eventRequest->fresh(),
-                'event' => $event->load('eventRequest'),
-            ]);
-        });
     }
 }

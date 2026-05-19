@@ -21,8 +21,6 @@ mkdir -p \
     storage/logs \
     bootstrap/cache
 
-touch "${DB_DATABASE:-database/database.sqlite}"
-
 if [ ! -f vendor/autoload.php ]; then
     composer install --no-interaction --prefer-dist
 fi
@@ -33,7 +31,7 @@ fi
 
 php artisan config:clear --no-interaction
 
-if [ ! -e public/storage ]; then
+if [ "${FILESYSTEM_DISK:-local}" = "local" ] && [ ! -e public/storage ]; then
     php artisan storage:link --no-interaction
 fi
 

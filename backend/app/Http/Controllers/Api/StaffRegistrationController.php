@@ -186,12 +186,12 @@ class StaffRegistrationController extends Controller
         }
 
         return DB::transaction(function () use ($registration) {
-            $event = Event::query()->whereKey($registration->event_id)->lockForUpdate()->firstOrFail();
             $registration->delete();
 
-            if ($event->registered_count > 0) {
-                $event->decrement('registered_count');
-            }
+            Event::query()
+                ->whereKey($registration->event_id)
+                ->where('registered_count', '>', 0)
+                ->decrement('registered_count');
 
             return response()->json(['message' => 'Inscription supprimée.']);
         });

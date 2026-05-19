@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -16,13 +17,18 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'confirmed', Password::defaults()],
             'role' => ['required', 'in:participant,client'],
         ], [
-            'email.unique' => 'Cette adresse e-mail est déjà utilisée.',
             'email.email' => 'L\'adresse e-mail n\'est pas valide.',
         ]);
+
+        if (User::query()->where('email', $data['email'])->exists()) {
+            throw ValidationException::withMessages([
+                'email' => ['Cette adresse e-mail est déjà utilisée.'],
+            ]);
+        }
 
         $user = User::create([
             'name' => $data['name'],
