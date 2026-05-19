@@ -2,10 +2,11 @@
 
 namespace App\Exceptions;
 
+use App\Exceptions\Contracts\ApiException;
 use App\Models\Registration;
 use RuntimeException;
 
-class RegistrationException extends RuntimeException
+class RegistrationException extends RuntimeException implements ApiException
 {
     public function __construct(
         string $message,
@@ -13,6 +14,11 @@ class RegistrationException extends RuntimeException
         public readonly ?Registration $registration = null,
     ) {
         parent::__construct($message);
+    }
+
+    public function statusCode(): int
+    {
+        return $this->status;
     }
 
     /** @return array<string, mixed> */

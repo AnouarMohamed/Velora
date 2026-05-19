@@ -1,9 +1,11 @@
 <?php
 
+use App\Exceptions\Contracts\ApiException;
 use App\Http\Middleware\EnsureRole;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,5 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (ApiException $exception, Request $request) {
+            if (! $request->is('api/*') && ! $request->expectsJson()) {
+                return null;
+            }
+
+            return response()->json($exception->toResponsePayload(), $exception->statusCode());
+        });
     })->create();

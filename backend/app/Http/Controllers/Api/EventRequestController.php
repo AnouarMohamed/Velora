@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Exceptions\EventRequestReviewException;
 use App\Http\Controllers\Controller;
 use App\Models\EventRequest;
 use App\Services\EventRequestReviewService;
@@ -162,18 +161,14 @@ class EventRequestController extends Controller
             'rejection_reason' => ['required_if:decision,rejected', 'nullable', 'string'],
         ]);
 
-        try {
-            if ($data['decision'] === 'rejected') {
-                return response()->json($this->reviews->reject(
-                    $eventRequest,
-                    $request->user(),
-                    $data['rejection_reason'] ?? null,
-                ));
-            }
-
-            return response()->json($this->reviews->approve($eventRequest, $request->user()));
-        } catch (EventRequestReviewException $exception) {
-            return response()->json($exception->toResponsePayload(), $exception->status);
+        if ($data['decision'] === 'rejected') {
+            return response()->json($this->reviews->reject(
+                $eventRequest,
+                $request->user(),
+                $data['rejection_reason'] ?? null,
+            ));
         }
+
+        return response()->json($this->reviews->approve($eventRequest, $request->user()));
     }
 }

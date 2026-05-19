@@ -2,9 +2,10 @@
 
 namespace App\Exceptions;
 
+use App\Exceptions\Contracts\ApiException;
 use RuntimeException;
 
-class EventManagementException extends RuntimeException
+class EventManagementException extends RuntimeException implements ApiException
 {
     public function __construct(
         string $message,
@@ -13,7 +14,12 @@ class EventManagementException extends RuntimeException
         parent::__construct($message);
     }
 
-    /** @return array<string, string> */
+    public function statusCode(): int
+    {
+        return $this->status;
+    }
+
+    /** @return array<string, mixed> */
     public function toResponsePayload(): array
     {
         return ['message' => $this->getMessage()];

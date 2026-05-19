@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Exceptions\RegistrationException;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\Registration;
@@ -45,11 +44,7 @@ class RegistrationController extends Controller
     {
         abort_unless($request->user()->role === User::ROLE_PARTICIPANT, 403);
 
-        try {
-            $registration = $this->registrations->register($request->user(), $event);
-        } catch (RegistrationException $exception) {
-            return response()->json($exception->toResponsePayload(), $exception->status);
-        }
+        $registration = $this->registrations->register($request->user(), $event);
 
         return response()->json($registration, 201);
     }
@@ -60,11 +55,7 @@ class RegistrationController extends Controller
         abort_unless($registration->user_id === $user->id, 403);
         abort_unless($user->role === User::ROLE_PARTICIPANT, 403);
 
-        try {
-            $registration = $this->registrations->pay($registration);
-        } catch (RegistrationException $exception) {
-            return response()->json($exception->toResponsePayload(), $exception->status);
-        }
+        $registration = $this->registrations->pay($registration);
 
         return response()->json($registration);
     }
@@ -75,11 +66,7 @@ class RegistrationController extends Controller
         abort_unless($registration->user_id === $user->id, 403);
         abort_unless($user->role === User::ROLE_PARTICIPANT, 403);
 
-        try {
-            $this->registrations->cancel($registration);
-        } catch (RegistrationException $exception) {
-            return response()->json($exception->toResponsePayload(), $exception->status);
-        }
+        $this->registrations->cancel($registration);
 
         return response()->json(['message' => 'Inscription annulée.']);
     }

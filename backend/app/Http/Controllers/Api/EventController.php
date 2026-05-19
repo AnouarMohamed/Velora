@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Exceptions\EventManagementException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Events\AssignEventOrganizerRequest;
 use App\Http\Requests\Events\StoreEventRequest;
@@ -12,7 +11,6 @@ use App\Models\Event;
 use App\Models\User;
 use App\Services\EventManagementService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 class EventController extends Controller
 {
@@ -117,35 +115,21 @@ class EventController extends Controller
 
     public function store(StoreEventRequest $request)
     {
-        try {
-            $event = $this->events->create($request->user(), $request->validated());
-        } catch (ValidationException $e) {
-            return $this->validationResponse($e);
-        } catch (EventManagementException $e) {
-            return response()->json($e->toResponsePayload(), $e->status);
-        }
+        $event = $this->events->create($request->user(), $request->validated());
 
         return response()->json($event, 201);
     }
 
     public function update(UpdateEventRequest $request, Event $event)
     {
-        try {
-            $event = $this->events->update($request->user(), $event, $request->validated());
-        } catch (EventManagementException $e) {
-            return response()->json($e->toResponsePayload(), $e->status);
-        }
+        $event = $this->events->update($request->user(), $event, $request->validated());
 
         return response()->json($event);
     }
 
     public function updateCapacity(UpdateEventCapacityRequest $request, Event $event)
     {
-        try {
-            $event = $this->events->updateCapacity($request->user(), $event, (int) $request->validated('capacity'));
-        } catch (EventManagementException $e) {
-            return response()->json($e->toResponsePayload(), $e->status);
-        }
+        $event = $this->events->updateCapacity($request->user(), $event, (int) $request->validated('capacity'));
 
         return response()->json($event);
     }
@@ -168,11 +152,7 @@ class EventController extends Controller
     /** Organisateur : soumet l'événement à validation admin avant mise en ligne. */
     public function requestPublication(Request $request, Event $event)
     {
-        try {
-            $event = $this->events->requestPublication($request->user(), $event);
-        } catch (EventManagementException $e) {
-            return response()->json($e->toResponsePayload(), $e->status);
-        }
+        $event = $this->events->requestPublication($request->user(), $event);
 
         return response()->json($event);
     }
@@ -180,11 +160,7 @@ class EventController extends Controller
     /** Admin : approuve la demande de publication d'un organisateur. */
     public function approvePublication(Request $request, Event $event)
     {
-        try {
-            $event = $this->events->approvePublication($request->user(), $event);
-        } catch (EventManagementException $e) {
-            return response()->json($e->toResponsePayload(), $e->status);
-        }
+        $event = $this->events->approvePublication($request->user(), $event);
 
         return response()->json($event);
     }
@@ -197,13 +173,5 @@ class EventController extends Controller
         }
 
         return $event->isOrganizer($user);
-    }
-
-    private function validationResponse(ValidationException $e)
-    {
-        return response()->json([
-            'message' => collect($e->errors())->flatten()->first(),
-            'errors' => $e->errors(),
-        ], 422);
     }
 }
