@@ -13,36 +13,6 @@ parameters:
 			path: app/Http/Controllers/Api/EventController.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$contact_email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/EventRequestController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$image_path\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/EventRequestController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/EventRequestController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\User\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Http/Controllers/Api/EventRequestController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\User\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/EventRequestController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\AppNotification\:\:\$read_at\.$#'
 			identifier: property.notFound
 			count: 1
@@ -177,7 +147,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property App\\Models\\User\:\:\$email\.$#'
 			identifier: property.notFound
-			count: 4
+			count: 3
 			path: app/Http/Controllers/Api/StatsController.php
 
 		-
@@ -259,18 +229,6 @@ parameters:
 			path: app/Models/Event.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Event\:\:\$event_request_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Models/EventRequest.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Event\:\:\$status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Models/EventRequest.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\User\:\:\$role\.$#'
 			identifier: property.notFound
 			count: 2
@@ -293,30 +251,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Services/EventManagementService.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$description\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/EventRequestReviewService.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$image_path\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/EventRequestReviewService.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$location\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/EventRequestReviewService.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\EventRequest\:\:\$title\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/EventRequestReviewService.php
 
 		-
 			message: '#^Access to an undefined property App\\Models\\Event\:\:\$created_by\.$#'

@@ -8,13 +8,17 @@ use App\Models\EventRequest;
 use App\Models\Payment;
 use App\Models\Registration;
 use App\Models\User;
+use App\Services\EventRequests\EventRequestEligibilityService;
 use App\Services\RegistrationStatsService;
 use App\Support\Money;
 use Illuminate\Http\Request;
 
 class StatsController extends Controller
 {
-    public function __construct(private readonly RegistrationStatsService $registrationStats) {}
+    public function __construct(
+        private readonly RegistrationStatsService $registrationStats,
+        private readonly EventRequestEligibilityService $eventRequestEligibility,
+    ) {}
 
     public function admin(Request $request)
     {
@@ -168,7 +172,7 @@ class StatsController extends Controller
             $pastEvents[] = $formatEvent($event);
         }
 
-        $blockReason = EventRequest::clientBlockingReason($user->email);
+        $blockReason = $this->eventRequestEligibility->blockingReasonFor($user);
 
         return response()->json([
             'total_revenue' => $eventIdsArray
