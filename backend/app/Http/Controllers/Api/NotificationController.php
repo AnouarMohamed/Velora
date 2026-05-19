@@ -12,7 +12,7 @@ class NotificationController extends Controller
     {
         $query = AppNotification::query()
             ->where('user_id', $request->user()->id)
-            ->latest();
+            ->orderBy('created_at', 'desc');
 
         if ($request->boolean('unread_only')) {
             $query->whereNull('read_at');

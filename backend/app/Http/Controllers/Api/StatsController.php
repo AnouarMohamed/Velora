@@ -8,10 +8,14 @@ use App\Models\EventRequest;
 use App\Models\Payment;
 use App\Models\Registration;
 use App\Models\User;
+use App\Services\RegistrationStatsService;
+use App\Support\Money;
 use Illuminate\Http\Request;
 
 class StatsController extends Controller
 {
+    public function __construct(private readonly RegistrationStatsService $registrationStats) {}
+
     public function admin(Request $request)
     {
         $formatPastEvent = fn (Event $event) => [
@@ -33,17 +37,18 @@ class StatsController extends Controller
             ] : null,
         ];
 
-        $pastEvents = Event::query()
+        $pastEventModels = Event::query()
             ->where('status', 'published')
             ->finished()
             ->with([
                 'organizer:id,name',
                 'eventRequest:id,title,contact_name,contact_email',
             ])
-            ->withCount([
-                'registrations as tickets_count' => fn ($q) => $q->where('payment_status', 'paid'),
-            ])
-            ->get()
+            ->get();
+
+        $this->registrationStats->attachCount($pastEventModels, 'tickets_count', 'paid');
+
+        $pastEvents = $pastEventModels
             ->sort(function (Event $a, Event $b) {
                 $aEffectiveEnd = strtotime((string) ($a->end_at ?? $a->start_at));
                 $bEffectiveEnd = strtotime((string) ($b->end_at ?? $b->start_at));
@@ -54,9 +59,12 @@ class StatsController extends Controller
 
                 return $bEffectiveEnd <=> $aEffectiveEnd;
             })
-            ->map($formatPastEvent)
-            ->values()
-            ->all();
+            ->values();
+
+        $pastEventsPayload = [];
+        foreach ($pastEvents as $event) {
+            $pastEventsPayload[] = $formatPastEvent($event);
+        }
 
         return response()->json([
             'users_total' => User::count(),
@@ -72,10 +80,10 @@ class StatsController extends Controller
             'events_total' => Event::count(),
             'events_published' => Event::where('status', 'published')->count(),
             'registrations_total' => Registration::count(),
-            'revenue' => (float) Payment::where('status', 'completed')->sum('amount'),
+            'revenue' => Money::floatFromCents(Payment::where('status', 'completed')->sum('amount_cents')),
             'pending_requests' => EventRequest::where('status', 'pending')->count(),
             'pending_publications' => Event::where('status', 'pending_publication')->count(),
-            'past_events' => $pastEvents,
+            'past_events' => $pastEventsPayload,
         ]);
     }
 
@@ -94,11 +102,15 @@ class StatsController extends Controller
             ->where('contact_email', $user->email)
             ->with([
                 'event' => fn ($q) => $q
-                    ->select('id', 'title', 'status', 'event_request_id', 'ticket_price')
-                    ->withCount('registrations'),
+                    ->select('id', 'title', 'status', 'event_request_id', 'ticket_price_cents'),
             ])
-            ->latest()
+            ->orderBy('created_at', 'desc')
             ->get();
+
+        $this->registrationStats->attachCount(
+            $requests->pluck('event')->filter()->values(),
+            'registrations_count',
+        );
 
         $eventIdsArray = $eventIds->all();
 
@@ -114,10 +126,7 @@ class StatsController extends Controller
             ->whereHas('eventRequest', function ($q) use ($user) {
                 $q->where('contact_email', $user->email)->where('status', 'approved');
             })
-            ->with(['organizer:id,name', 'eventRequest'])
-            ->withCount([
-                'registrations as tickets_count' => fn ($q) => $q->where('payment_status', 'paid'),
-            ]);
+            ->with(['organizer:id,name', 'eventRequest']);
 
         $formatEvent = fn (Event $event) => [
             'id' => $event->id,
@@ -134,31 +143,39 @@ class StatsController extends Controller
             'organizer' => $event->organizer,
         ];
 
-        $featuredEvents = (clone $clientEventsQuery)
+        $featuredEventModels = (clone $clientEventsQuery)
             ->notFinished()
-            ->orderBy('start_at')
-            ->get()
-            ->map($formatEvent)
-            ->values()
-            ->all();
+            ->orderBy('start_at', 'asc')
+            ->get();
 
-        $pastEvents = (clone $clientEventsQuery)
+        $this->registrationStats->attachCount($featuredEventModels, 'tickets_count', 'paid');
+
+        $featuredEvents = [];
+        foreach ($featuredEventModels as $event) {
+            $featuredEvents[] = $formatEvent($event);
+        }
+
+        $pastEventModels = (clone $clientEventsQuery)
             ->finished()
-            ->orderByDesc('end_at')
-            ->orderByDesc('start_at')
-            ->get()
-            ->map($formatEvent)
-            ->values()
-            ->all();
+            ->orderBy('end_at', 'desc')
+            ->orderBy('start_at', 'desc')
+            ->get();
+
+        $this->registrationStats->attachCount($pastEventModels, 'tickets_count', 'paid');
+
+        $pastEvents = [];
+        foreach ($pastEventModels as $event) {
+            $pastEvents[] = $formatEvent($event);
+        }
 
         $blockReason = EventRequest::clientBlockingReason($user->email);
 
         return response()->json([
             'total_revenue' => $eventIdsArray
-                ? (float) Payment::query()
+                ? Money::floatFromCents(Payment::query()
                     ->whereHas('registration', fn ($q) => $q->whereIn('event_id', $eventIdsArray))
                     ->where('status', 'completed')
-                    ->sum('amount')
+                    ->sum('amount_cents'))
                 : 0.0,
             'featured_events' => $featuredEvents,
             'past_events' => $pastEvents,

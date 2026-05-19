@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\StoresMoneyAsCents;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use MongoDB\Laravel\Eloquent\Model;
 
 class Event extends Model
 {
+    use StoresMoneyAsCents;
+
     public const STATUS_CANCELLED = 'cancelled';
 
     public const STATUS_COMPLETED = 'completed';
@@ -22,7 +26,9 @@ class Event extends Model
 
     protected $table = 'events';
 
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url', 'ticket_price'];
+
+    protected $hidden = ['ticket_price_cents'];
 
     protected $fillable = [
         'event_request_id',
@@ -38,6 +44,7 @@ class Event extends Model
         'capacity',
         'registered_count',
         'ticket_price',
+        'ticket_price_cents',
         'status',
     ];
 
@@ -46,8 +53,12 @@ class Event extends Model
         return [
             'start_at' => 'datetime',
             'end_at' => 'datetime',
-            'ticket_price' => 'decimal:2',
         ];
+    }
+
+    protected function ticketPrice(): Attribute
+    {
+        return $this->moneyAttribute('ticket_price_cents');
     }
 
     public function getImageUrlAttribute(): ?string

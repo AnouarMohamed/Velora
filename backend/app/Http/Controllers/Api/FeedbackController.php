@@ -24,7 +24,7 @@ class FeedbackController extends Controller
         $query = Feedback::query()
             ->where('event_id', $event->id)
             ->with('user:id,name')
-            ->latest();
+            ->orderBy('created_at', 'desc');
 
         abort_unless($this->canViewFeedbacks($user, $event), 403);
 

@@ -144,7 +144,9 @@ class EventRequestController extends Controller
 
     public function index(Request $request)
     {
-        $query = EventRequest::query()->with('event')->latest();
+        $query = EventRequest::query()
+            ->with('event')
+            ->orderBy('created_at', 'desc');
 
         if ($request->query('status')) {
             $query->where('status', $request->query('status'));

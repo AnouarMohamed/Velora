@@ -16,7 +16,7 @@ class UserAdminController extends Controller
 {
     public function index(Request $request)
     {
-        $q = User::query()->latest();
+        $q = User::query()->orderBy('created_at', 'desc');
         if ($role = $request->query('role')) {
             $q->where('role', $role);
         }
@@ -28,7 +28,7 @@ class UserAdminController extends Controller
     {
         $users = User::query()
             ->where('role', User::ROLE_ORGANIZER)
-            ->orderBy('name')
+            ->orderBy('name', 'asc')
             ->get(['id', 'name', 'email', 'role']);
 
         return response()->json($users);

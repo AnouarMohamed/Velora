@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\StoresMoneyAsCents;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -9,9 +11,15 @@ use MongoDB\Laravel\Eloquent\Model;
 
 class Registration extends Model
 {
+    use StoresMoneyAsCents;
+
     protected $connection = 'mongodb';
 
     protected $table = 'registrations';
+
+    protected $appends = ['amount'];
+
+    protected $hidden = ['amount_cents'];
 
     protected $fillable = [
         'event_id',
@@ -21,6 +29,7 @@ class Registration extends Model
         'payment_status',
         'ticket_code',
         'amount',
+        'amount_cents',
         'paid_at',
         'registered_at',
     ];
@@ -28,10 +37,14 @@ class Registration extends Model
     protected function casts(): array
     {
         return [
-            'amount' => 'decimal:2',
             'paid_at' => 'datetime',
             'registered_at' => 'datetime',
         ];
+    }
+
+    protected function amount(): Attribute
+    {
+        return $this->moneyAttribute('amount_cents');
     }
 
     public function event(): BelongsTo

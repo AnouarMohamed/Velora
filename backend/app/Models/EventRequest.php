@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasPublicImage;
+use App\Models\Concerns\StoresMoneyAsCents;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use MongoDB\Laravel\Eloquent\Model;
@@ -10,12 +12,15 @@ use MongoDB\Laravel\Eloquent\Model;
 class EventRequest extends Model
 {
     use HasPublicImage;
+    use StoresMoneyAsCents;
 
     protected $connection = 'mongodb';
 
     protected $table = 'event_requests';
 
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url', 'ticket_price'];
+
+    protected $hidden = ['ticket_price_cents'];
 
     protected $fillable = [
         'user_id',
@@ -26,6 +31,7 @@ class EventRequest extends Model
         'preferred_end',
         'location',
         'ticket_price',
+        'ticket_price_cents',
         'contact_name',
         'contact_email',
         'contact_phone',
@@ -41,8 +47,12 @@ class EventRequest extends Model
             'preferred_start' => 'datetime',
             'preferred_end' => 'datetime',
             'reviewed_at' => 'datetime',
-            'ticket_price' => 'decimal:2',
         ];
+    }
+
+    protected function ticketPrice(): Attribute
+    {
+        return $this->moneyAttribute('ticket_price_cents');
     }
 
     public function user(): BelongsTo

@@ -22,7 +22,9 @@ class EventController extends Controller
 
     public function indexAll(Request $request)
     {
-        $q = Event::query()->with(['organizer', 'eventRequest', 'creator:id,name,role'])->latest();
+        $q = Event::query()
+            ->with(['organizer', 'eventRequest', 'creator:id,name,role'])
+            ->orderBy('created_at', 'desc');
 
         if ($search = $request->query('q')) {
             $q->where(function ($query) use ($search) {
@@ -44,7 +46,7 @@ class EventController extends Controller
                     ->orWhere('created_by', $user->id);
             })
             ->with(['eventRequest', 'organizer'])
-            ->latest()
+            ->orderBy('created_at', 'desc')
             ->paginate(30);
 
         return response()->json($events);
@@ -61,7 +63,7 @@ class EventController extends Controller
                     ->orWhereHas('creator', fn ($q) => $q->where('role', User::ROLE_ORGANIZER));
             })
             ->with(['organizer', 'eventRequest', 'creator:id,name,role'])
-            ->latest()
+            ->orderBy('created_at', 'desc')
             ->paginate(30);
 
         return response()->json($events);
@@ -79,7 +81,7 @@ class EventController extends Controller
                     ->orWhere('created_by', $user->id);
             })
             ->with(['eventRequest', 'organizer'])
-            ->latest()
+            ->orderBy('created_at', 'desc')
             ->paginate(30);
 
         return response()->json($events);
@@ -91,7 +93,7 @@ class EventController extends Controller
             ->where('status', Event::STATUS_PUBLISHED)
             ->where('start_at', '>=', now()->subDay())
             ->with(['organizer', 'eventRequest'])
-            ->orderBy('start_at');
+            ->orderBy('start_at', 'asc');
 
         if ($search = $request->query('q')) {
             $q->where(function ($query) use ($search) {

@@ -3,15 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Registrations\StaffRegistrationIndexRequest;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
+use App\Services\RegistrationStatsService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class StaffRegistrationController extends Controller
 {
+    public function __construct(private readonly RegistrationStatsService $registrationStats) {}
+
     /** Événements publiés assignés à l'organisateur ou créés par lui. */
     private function organizerEventsQuery(User $user): Builder
     {
@@ -39,12 +43,11 @@ class StaffRegistrationController extends Controller
         abort_unless($request->user()->role === User::ROLE_ORGANIZER, 403);
 
         $events = $this->organizerEventsQuery($request->user())
-            ->withCount([
-                'registrations',
-                'registrations as paid_registrations_count' => fn ($q) => $q->where('payment_status', 'paid'),
-            ])
-            ->orderBy('start_at')
+            ->orderBy('start_at', 'asc')
             ->get(['id', 'title', 'start_at', 'status', 'registered_count', 'capacity']);
+
+        $this->registrationStats->attachCount($events, 'registrations_count');
+        $this->registrationStats->attachCount($events, 'paid_registrations_count', 'paid');
 
         return response()->json($events);
     }
@@ -54,39 +57,36 @@ class StaffRegistrationController extends Controller
         abort_unless($request->user()->isAdmin(), 403);
 
         $events = $this->adminEventsQuery($request->user())
-            ->withCount([
-                'registrations',
-                'registrations as paid_registrations_count' => fn ($q) => $q->where('payment_status', 'paid'),
-            ])
-            ->orderByDesc('start_at')
+            ->orderBy('start_at', 'desc')
             ->get(['id', 'title', 'start_at', 'status', 'registered_count', 'capacity']);
+
+        $this->registrationStats->attachCount($events, 'registrations_count');
+        $this->registrationStats->attachCount($events, 'paid_registrations_count', 'paid');
 
         return response()->json($events);
     }
 
-    public function indexForOrganizer(Request $request)
+    public function indexForOrganizer(StaffRegistrationIndexRequest $request)
     {
         abort_unless($request->user()->role === User::ROLE_ORGANIZER, 403);
 
         return $this->index($request, $this->organizerEventsQuery($request->user()));
     }
 
-    public function indexForAdmin(Request $request)
+    public function indexForAdmin(StaffRegistrationIndexRequest $request)
     {
         abort_unless($request->user()->isAdmin(), 403);
 
         return $this->index($request, $this->adminEventsQuery($request->user()));
     }
 
-    private function index(Request $request, Builder $eventsQuery)
+    private function index(StaffRegistrationIndexRequest $request, Builder $eventsQuery)
     {
-        $data = $request->validate([
-            'event_id' => ['nullable', 'integer'],
-            'payment_status' => ['nullable', 'in:pending,paid,all'],
-            'q' => ['nullable', 'string', 'max:120'],
-        ]);
+        $data = $request->validated();
 
-        $eventIds = (clone $eventsQuery)->pluck('id');
+        $eventIds = (clone $eventsQuery)
+            ->pluck('id')
+            ->map(fn (mixed $eventId): string => (string) $eventId);
 
         if ($eventIds->isEmpty()) {
             return response()->json([
@@ -114,7 +114,7 @@ class StaffRegistrationController extends Controller
             ]);
 
         if (! empty($data['event_id'])) {
-            abort_unless($eventIds->contains((int) $data['event_id']), 403);
+            abort_unless($eventIds->contains((string) $data['event_id']), 403);
             $regsQuery->where('event_id', $data['event_id']);
         }
 
@@ -146,7 +146,7 @@ class StaffRegistrationController extends Controller
             'pending' => (clone $summaryBase)->where('payment_status', 'pending')->count(),
         ];
 
-        $paginated = $regsQuery->latest()->paginate(20);
+        $paginated = $regsQuery->orderBy('created_at', 'desc')->paginate(20);
 
         return response()->json([
             'data' => $paginated->items(),
@@ -176,8 +176,11 @@ class StaffRegistrationController extends Controller
 
     private function destroy(Request $request, Registration $registration, Builder $eventsQuery)
     {
-        $eventIds = (clone $eventsQuery)->pluck('id');
-        abort_unless($eventIds->contains($registration->event_id), 403);
+        $eventIds = (clone $eventsQuery)
+            ->pluck('id')
+            ->map(fn (mixed $eventId): string => (string) $eventId);
+
+        abort_unless($eventIds->contains((string) $registration->event_id), 403);
 
         if ($registration->payment_status === 'paid') {
             return response()->json([

@@ -13,7 +13,7 @@ class EventTaskController extends Controller
     {
         abort_unless($this->canManage($request, $event), 403);
 
-        return response()->json($event->tasks()->orderBy('due_at')->get());
+        return response()->json($event->tasks()->orderBy('due_at', 'asc')->get());
     }
 
     public function store(Request $request, Event $event)
