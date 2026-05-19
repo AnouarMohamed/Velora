@@ -5,7 +5,7 @@ Application React + Laravel pour gerer les demandes d'evenements, les publicatio
 
 ## Stack locale
 
-- `backend/` - Laravel 13 API REST, Sanctum, MongoDB uniquement
+- `backend/` - Laravel 13 API REST, Sanctum, MongoDB
 - `frontend/` - React 19 + Vite
 - `docker-compose.yml` - Backend, frontend, MongoDB replica set local et Redis
 
