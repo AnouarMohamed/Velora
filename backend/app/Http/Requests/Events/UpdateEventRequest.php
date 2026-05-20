@@ -6,14 +6,37 @@ use App\Models\Event;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * Form request for updating an existing event.
+ *
+ * This request handles partial updates to event details. All fields are optional
+ * but must follow the specified rules if provided.
+ */
 class UpdateEventRequest extends FormRequest
 {
+    /**
+     * Determine if the user is authorized to make this request.
+     *
+     * Authenticated users can attempt this; specific permissions
+     * (e.g., event owner or admin) are checked in the business logic.
+     */
     public function authorize(): bool
     {
         return $this->user() !== null;
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * Rules use 'sometimes' to allow partial updates:
+     * - title: String, max 255.
+     * - start_at: Valid date.
+     * - end_at: Valid date after start_at.
+     * - capacity: Integer >= 1.
+     * - status: Must be a valid event status (draft, published, completed, etc.).
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

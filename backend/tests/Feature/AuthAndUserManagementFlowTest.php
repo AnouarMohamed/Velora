@@ -87,6 +87,33 @@ class AuthAndUserManagementFlowTest extends TestCase
             ->assertJsonPath('message', 'Identifiants invalides.');
     }
 
+    public function test_login_token_authenticates_follow_up_api_requests(): void
+    {
+        $this->user(User::ROLE_PARTICIPANT, [
+            'email' => 'participant-token@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+
+        $token = $this->postJson('/api/login', [
+            'email' => 'participant-token@example.com',
+            'password' => 'password123',
+        ])
+            ->assertOk()
+            ->json('token');
+
+        $this->assertIsString($token);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/user')
+            ->assertOk()
+            ->assertJsonPath('email', 'participant-token@example.com');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/notifications/unread-count')
+            ->assertOk()
+            ->assertJsonPath('count', 0);
+    }
+
     public function test_admin_creates_updates_and_deletes_users(): void
     {
         $admin = $this->user(User::ROLE_ADMIN);

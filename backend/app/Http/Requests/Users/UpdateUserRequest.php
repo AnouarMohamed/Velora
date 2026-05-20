@@ -7,9 +7,23 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Form request for updating an existing user's information.
+ *
+ * Supports partial updates of name, email, password, and role.
+ */
 class UpdateUserRequest extends FormRequest
 {
-    /** @return array<string, mixed> */
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * Rules use 'sometimes' to allow partial updates:
+     * - email: Valid email if provided.
+     * - password: Optional, must meet security defaults if provided.
+     * - role: Optional, must be a valid system role if provided.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

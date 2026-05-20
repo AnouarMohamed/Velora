@@ -11,12 +11,29 @@ use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Service managing the lifecycle and visibility of Event Feedbacks.
+ *
+ * This service handles the submission of reviews by participants, moderation by admins,
+ * and complex visibility rules that determine who can see which feedback based on their role
+ * and relationship to the event.
+ */
 class FeedbackService
 {
-    /** @return Collection<int, Feedback> */
+    /**
+     * Lists feedbacks for a specific event based on the viewer's role.
+     *
+     * @param  User  $viewer  The user requesting the list.
+     * @param  Event  $event  The event reviews are for.
+     * @return Collection<int, Feedback>
+     *
+     * @throws FeedbackException If the viewer is not authorized to see feedbacks for this event.
+     */
     public function listForEvent(User $viewer, Event $event): Collection
     {
+        // Enforce that the event itself is accessible to the viewer.
         $this->ensureEventIsVisibleTo($viewer, $event);
+        // Enforce specific authorization for viewing feedbacks.
         $this->ensureCanViewFeedbacks($viewer, $event);
 
         $query = Feedback::query()
@@ -24,6 +41,7 @@ class FeedbackService
             ->with('user:id,name')
             ->orderBy('created_at', 'desc');
 
+        // Only Admins can see 'pending' feedbacks. Others see only 'approved' ones.
         if (! $viewer->isAdmin()) {
             $query->where('status', Feedback::STATUS_APPROVED);
         }
@@ -31,7 +49,13 @@ class FeedbackService
         return $query->get();
     }
 
-    /** @param array{rating: int, comment?: string|null} $data */
+    /**
+     * Submits or updates a participant's feedback for an event.
+     *
+     * @param  array{rating: int, comment?: string|null}  $data
+     *
+     * @throws FeedbackException If the user is not a participant, event is not live, or they haven't paid.
+     */
     public function submit(User $participant, Event $event, array $data): Feedback
     {
         if ($participant->getAttribute('role') !== User::ROLE_PARTICIPANT) {
@@ -42,10 +66,13 @@ class FeedbackService
             throw new FeedbackException('Événement non disponible.');
         }
 
+        // Business rule: Feedback is only allowed if the participant actually attended/paid for the event.
         if (! $this->participantHasPaidRegistration($participant, $event)) {
             throw new FeedbackException('Inscription payante requise pour laisser un avis.', 403);
         }
 
+        // Use updateOrCreate to allow participants to revise their review.
+        // Revised reviews are reset to 'pending' for re-moderation.
         $feedback = Feedback::updateOrCreate(
             [
                 'event_id' => $event->id,
@@ -60,11 +87,17 @@ class FeedbackService
 
         $feedback->load('user:id,name', 'event');
 
+        // Notify admins about the new review submission.
         NotificationService::feedbackSubmitted($feedback);
 
         return $feedback;
     }
 
+    /**
+     * Approves a feedback, making it visible to the public.
+     *
+     * @throws FeedbackException If the reviewer is not an admin.
+     */
     public function approve(User $reviewer, Feedback $feedback): FeedbackApprovalResult
     {
         if (! $reviewer->isAdmin()) {
@@ -81,11 +114,15 @@ class FeedbackService
         $feedback->update(['status' => Feedback::STATUS_APPROVED]);
         $feedback->load('user:id,name', 'event');
 
+        // Notify the author and the event's client about the approval.
         NotificationService::feedbackApproved($feedback);
 
         return new FeedbackApprovalResult($feedback, 'Avis publié.');
     }
 
+    /**
+     * Deletes a feedback (Admin only).
+     */
     public function delete(User $reviewer, Feedback $feedback): void
     {
         if (! $reviewer->isAdmin()) {
@@ -95,6 +132,9 @@ class FeedbackService
         $feedback->delete();
     }
 
+    /**
+     * Ensures the event is generally visible (either published or managed by the viewer).
+     */
     private function ensureEventIsVisibleTo(User $viewer, Event $event): void
     {
         if ($event->getAttribute('status') === Event::STATUS_PUBLISHED || $this->canManageEvent($viewer, $event)) {
@@ -104,6 +144,15 @@ class FeedbackService
         throw new FeedbackException('Not found.', 404);
     }
 
+    /**
+     * Enforces granular access control for viewing feedbacks.
+     *
+     * Rules:
+     * - Admins: Can see everything.
+     * - Participants: Can see approved feedbacks for published events.
+     * - Clients: Can see approved feedbacks for their own events.
+     * - Organizers: Can see approved feedbacks for events they manage.
+     */
     private function ensureCanViewFeedbacks(User $viewer, Event $event): void
     {
         $event->loadMissing(['creator:id,role', 'eventRequest']);
@@ -138,6 +187,9 @@ class FeedbackService
         throw new FeedbackException('This action is unauthorized.', 403);
     }
 
+    /**
+     * Checks if a user has management rights over an event.
+     */
     private function canManageEvent(User $viewer, Event $event): bool
     {
         if ($viewer->isAdmin()) {
@@ -147,6 +199,9 @@ class FeedbackService
         return $event->isOrganizer($viewer);
     }
 
+    /**
+     * Checks if a user is the client who originally requested the event.
+     */
     private function clientOwnsEvent(User $viewer, Event $event): bool
     {
         $event->loadMissing('eventRequest');
@@ -156,6 +211,9 @@ class FeedbackService
             && strcasecmp($eventRequest->getAttribute('contact_email'), $viewer->getAttribute('email')) === 0;
     }
 
+    /**
+     * Checks if a participant has a completed payment for the event.
+     */
     private function participantHasPaidRegistration(User $participant, Event $event): bool
     {
         return Registration::where('event_id', $event->id)

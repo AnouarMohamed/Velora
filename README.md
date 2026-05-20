@@ -48,6 +48,14 @@ php artisan serve --host=127.0.0.1 --port=8000
 | Participant | participant@demo.local | password |
 | Client | client@demo.local | password |
 
+## Documentation backend
+
+- Guide API par roles: `backend/docs/api/README.md`
+- Specification OpenAPI 3.1: `backend/docs/api/openapi.yaml`
+- Reference PHP generee: ouvrir `backend/docs/index.html` dans un navigateur
+
+Le cache phpDocumentor `backend/.phpdoc/` est ignore. Les pages generees doivent etre regenerees uniquement quand les docblocks backend changent vraiment.
+
 ## Fonctionnalites par acteur
 
 | Acteur | Fonctionnalites |

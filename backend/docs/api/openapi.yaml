@@ -1,0 +1,1618 @@
+openapi: 3.1.0
+info:
+  title: VELORA Backend API
+  version: 1.0.0
+  summary: MongoDB-only Laravel API for event requests, event planning, registrations, feedback, notifications, and dashboards.
+servers:
+  - url: http://127.0.0.1:8000/api
+    description: Local Docker backend
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Notifications
+  - name: Events
+  - name: Registrations
+  - name: Event Planning
+  - name: Event Requests
+  - name: Feedback
+  - name: Users
+  - name: Stats
+paths:
+  /health:
+    get:
+      tags: [Auth]
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: Backend is healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    const: ok
+  /register:
+    post:
+      tags: [Auth]
+      summary: Register a participant or client
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registered user and token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /login:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authenticated user and token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /logout:
+    post:
+      tags: [Auth]
+      summary: Revoke current token
+      responses:
+        "200":
+          $ref: "#/components/responses/Message"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /user:
+    get:
+      tags: [Auth]
+      summary: Current user
+      responses:
+        "200":
+          description: Current authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List current user notifications
+      responses:
+        "200":
+          description: Notification list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+  /notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Unread notification count
+      responses:
+        "200":
+          description: Count payload.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [count]
+                properties:
+                  count:
+                    type: integer
+                    minimum: 0
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          $ref: "#/components/responses/Message"
+  /notifications/{notification}/read:
+    post:
+      tags: [Notifications]
+      summary: Mark one notification as read
+      parameters:
+        - $ref: "#/components/parameters/notification"
+      responses:
+        "200":
+          $ref: "#/components/responses/Message"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /events/browse:
+    get:
+      tags: [Events]
+      summary: Browse published events
+      parameters:
+        - $ref: "#/components/parameters/search"
+      responses:
+        "200":
+          description: Paginated published events.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedEvents"
+  /events/{event}:
+    get:
+      tags: [Events]
+      summary: Event detail
+      parameters:
+        - $ref: "#/components/parameters/event"
+      responses:
+        "200":
+          description: Event with planning relations.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /events/{event}/feedbacks:
+    get:
+      tags: [Feedback]
+      summary: Feedback for an event
+      parameters:
+        - $ref: "#/components/parameters/event"
+      responses:
+        "200":
+          description: Feedback collection.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Feedback"
+  /events/{event}/register:
+    post:
+      tags: [Registrations]
+      summary: Participant registration for an event
+      description: Participant role only. Rejects duplicate registrations and full events.
+      parameters:
+        - $ref: "#/components/parameters/event"
+      responses:
+        "201":
+          description: Created registration.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Registration"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/DomainError"
+  /events/{event}/my-registration:
+    get:
+      tags: [Registrations]
+      summary: Current participant registration for one event
+      parameters:
+        - $ref: "#/components/parameters/event"
+      responses:
+        "200":
+          description: Registration or null response depending on current state.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/Registration"
+                  - type: "null"
+  /my-registrations:
+    get:
+      tags: [Registrations]
+      summary: Current participant registrations
+      responses:
+        "200":
+          description: Registration list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Registration"
+  /registrations/{registration}/pay:
+    post:
+      tags: [Registrations]
+      summary: Pay pending registration
+      parameters:
+        - $ref: "#/components/parameters/registration"
+      responses:
+        "200":
+          description: Paid registration.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Registration"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/DomainError"
+  /registrations/{registration}:
+    delete:
+      tags: [Registrations]
+      summary: Cancel unpaid participant registration
+      parameters:
+        - $ref: "#/components/parameters/registration"
+      responses:
+        "200":
+          $ref: "#/components/responses/Message"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/DomainError"
+  /registrations/{registration}/ticket:
+    get:
+      tags: [Registrations]
+      summary: Download paid registration ticket payload
+      parameters:
+        - $ref: "#/components/parameters/registration"
+      responses:
+        "200":
+          description: Ticket payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/DomainError"
+  /events/{event}/feedback:
+    post:
+      tags: [Feedback]
+      summary: Submit feedback for an event
+      parameters:
+        - $ref: "#/components/parameters/event"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackWriteRequest"
+      responses:
+        "201":
+          description: Feedback submitted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feedback"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /organizer/events:
+    get:
+      tags: [Events]
+      summary: Organizer event list
+      responses:
+        "200":
+          description: Paginated managed events.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedEvents"
+    post:
+      tags: [Events]
+      summary: Create organizer event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventWriteRequest"
+      responses:
+        "201":
+          description: Created event.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /organizer/events/{event}:
+    patch:
+      tags: [Events]
+      summary: Update organizer event
+      parameters:
+        - $ref: "#/components/parameters/event"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventWriteRequest"
+      responses:
+        "200":
+          description: Updated event.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /organizer/events/{event}/capacity:
+    patch:
+      tags: [Events]
+      summary: Update organizer event capacity
+      parameters:
+        - $ref: "#/components/parameters/event"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CapacityRequest"
+      responses:
+        "200":
+          description: Updated event.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "422":
+          $ref: "#/components/responses/DomainError"
+  /organizer/events/{event}/request-publication:
+    post:
+      tags: [Events]
+      summary: Request event publication
+      parameters:
+        - $ref: "#/components/parameters/event"
+      responses:
+        "200":
+          description: Event moved to pending publication.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+  /organizer/events/{event}/tasks:
+    get:
+      tags: [Event Planning]
+      summary: List organizer event tasks
+      parameters:
+        - $ref: "#/components/parameters/event"
+      responses:
+        "200":
+          description: Task list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventTask"
+    post:
+      tags: [Event Planning]
+      summary: Create organizer event task
+      parameters:
+        - $ref: "#/components/parameters/event"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventTaskWriteRequest"
+      responses:
+        "201":
+          description: Created task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventTask"
+  /organizer/events/{event}/tasks/{eventTask}:
+    patch:
+      tags: [Event Planning]
+      summary: Update organizer event task
+      parameters:
+        - $ref: "#/components/parameters/event"
+        - $ref: "#/components/parameters/eventTask"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventTaskWriteRequest"
+      responses:
+        "200":
+          description: Updated task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventTask"
+    delete:
+      tags: [Event Planning]
+      summary: Delete organizer event task
+      parameters:
+        - $ref: "#/components/parameters/event"
+        - $ref: "#/components/parameters/eventTask"
+      responses:
+        "204":
+          description: Deleted.
+  /organizer/events/{event}/activities:
+    get:
+      tags: [Event Planning]
+      summary: List organizer event activities
+      parameters:
+        - $ref: "#/components/parameters/event"
+      responses:
+        "200":
+          description: Activity list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventActivity"
+    post:
+      tags: [Event Planning]
+      summary: Create organizer event activity
+      parameters:
+        - $ref: "#/components/parameters/event"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventActivityWriteRequest"
+      responses:
+        "201":
+          description: Created activity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventActivity"
+  /organizer/events/{event}/activities/{eventActivity}:
+    patch:
+      tags: [Event Planning]
+      summary: Update organizer event activity
+      parameters:
+        - $ref: "#/components/parameters/event"
+        - $ref: "#/components/parameters/eventActivity"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventActivityWriteRequest"
+      responses:
+        "200":
+          description: Updated activity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventActivity"
+    delete:
+      tags: [Event Planning]
+      summary: Delete organizer event activity
+      parameters:
+        - $ref: "#/components/parameters/event"
+        - $ref: "#/components/parameters/eventActivity"
+      responses:
+        "204":
+          description: Deleted.
+  /organizer/registrations/events:
+    get:
+      tags: [Registrations]
+      summary: Organizer registration event summary
+      responses:
+        "200":
+          description: Events with registration counts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventRegistrationSummary"
+  /organizer/registrations:
+    get:
+      tags: [Registrations]
+      summary: Organizer registration list
+      parameters:
+        - $ref: "#/components/parameters/eventIdQuery"
+      responses:
+        "200":
+          description: Registration list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Registration"
+  /organizer/registrations/{registration}:
+    delete:
+      tags: [Registrations]
+      summary: Organizer delete unpaid registration
+      parameters:
+        - $ref: "#/components/parameters/registration"
+      responses:
+        "200":
+          $ref: "#/components/responses/Message"
+        "422":
+          $ref: "#/components/responses/DomainError"
+  /admin/events:
+    get:
+      tags: [Events]
+      summary: Admin event list
+      parameters:
+        - $ref: "#/components/parameters/search"
+      responses:
+        "200":
+          description: Paginated events.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedEvents"
+  /admin/organizer-events:
+    get:
+      tags: [Events]
+      summary: Admin organizer-space events
+      responses:
+        "200":
+          description: Paginated organizer events.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedEvents"
+  /admin/my-events:
+    get:
+      tags: [Events]
+      summary: Admin assigned events
+      responses:
+        "200":
+          description: Paginated admin events.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedEvents"
+  /admin/events/{event}:
+    patch:
+      tags: [Events]
+      summary: Admin update event
+      parameters:
+        - $ref: "#/components/parameters/event"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventWriteRequest"
+      responses:
+        "200":
+          description: Updated event.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    delete:
+      tags: [Events]
+      summary: Admin delete event
+      parameters:
+        - $ref: "#/components/parameters/event"
+      responses:
+        "204":
+          description: Deleted.
+  /admin/events/{event}/capacity:
+    patch:
+      tags: [Events]
+      summary: Admin update event capacity
+      parameters:
+        - $ref: "#/components/parameters/event"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CapacityRequest"
+      responses:
+        "200":
+          description: Updated event.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+  /admin/events/{event}/assign-organizer:
+    patch:
+      tags: [Events]
+      summary: Assign organizer to event
+      parameters:
+        - $ref: "#/components/parameters/event"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [organizer_id]
+              properties:
+                organizer_id:
+                  $ref: "#/components/schemas/ObjectId"
+      responses:
+        "200":
+          description: Updated event.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+  /admin/events/{event}/approve-publication:
+    post:
+      tags: [Events]
+      summary: Approve event publication
+      parameters:
+        - $ref: "#/components/parameters/event"
+      responses:
+        "200":
+          description: Published event.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+  /admin/events/{event}/tasks:
+    get:
+      tags: [Event Planning]
+      summary: Admin list event tasks
+      parameters:
+        - $ref: "#/components/parameters/event"
+      responses:
+        "200":
+          description: Task list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventTask"
+    post:
+      tags: [Event Planning]
+      summary: Admin create event task
+      parameters:
+        - $ref: "#/components/parameters/event"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventTaskWriteRequest"
+      responses:
+        "201":
+          description: Created task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventTask"
+  /admin/events/{event}/tasks/{eventTask}:
+    patch:
+      tags: [Event Planning]
+      summary: Admin update event task
+      parameters:
+        - $ref: "#/components/parameters/event"
+        - $ref: "#/components/parameters/eventTask"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventTaskWriteRequest"
+      responses:
+        "200":
+          description: Updated task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventTask"
+    delete:
+      tags: [Event Planning]
+      summary: Admin delete event task
+      parameters:
+        - $ref: "#/components/parameters/event"
+        - $ref: "#/components/parameters/eventTask"
+      responses:
+        "204":
+          description: Deleted.
+  /admin/events/{event}/activities:
+    get:
+      tags: [Event Planning]
+      summary: Admin list event activities
+      parameters:
+        - $ref: "#/components/parameters/event"
+      responses:
+        "200":
+          description: Activity list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventActivity"
+    post:
+      tags: [Event Planning]
+      summary: Admin create event activity
+      parameters:
+        - $ref: "#/components/parameters/event"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventActivityWriteRequest"
+      responses:
+        "201":
+          description: Created activity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventActivity"
+  /admin/events/{event}/activities/{eventActivity}:
+    patch:
+      tags: [Event Planning]
+      summary: Admin update event activity
+      parameters:
+        - $ref: "#/components/parameters/event"
+        - $ref: "#/components/parameters/eventActivity"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventActivityWriteRequest"
+      responses:
+        "200":
+          description: Updated activity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventActivity"
+    delete:
+      tags: [Event Planning]
+      summary: Admin delete event activity
+      parameters:
+        - $ref: "#/components/parameters/event"
+        - $ref: "#/components/parameters/eventActivity"
+      responses:
+        "204":
+          description: Deleted.
+  /admin/event-requests:
+    get:
+      tags: [Event Requests]
+      summary: Admin event request list
+      responses:
+        "200":
+          description: Event requests.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventRequest"
+  /admin/event-requests/{eventRequest}/review:
+    post:
+      tags: [Event Requests]
+      summary: Review client event request
+      parameters:
+        - $ref: "#/components/parameters/eventRequest"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventRequestReviewRequest"
+      responses:
+        "200":
+          description: Reviewed request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventRequest"
+        "422":
+          $ref: "#/components/responses/DomainError"
+  /admin/users:
+    get:
+      tags: [Users]
+      summary: Admin user list
+      responses:
+        "200":
+          description: Users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      tags: [Users]
+      summary: Admin create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserWriteRequest"
+      responses:
+        "201":
+          description: Created user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /admin/users/{user}:
+    patch:
+      tags: [Users]
+      summary: Admin update user
+      parameters:
+        - $ref: "#/components/parameters/user"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserWriteRequest"
+      responses:
+        "200":
+          description: Updated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      tags: [Users]
+      summary: Admin delete user
+      parameters:
+        - $ref: "#/components/parameters/user"
+      responses:
+        "204":
+          description: Deleted.
+        "422":
+          $ref: "#/components/responses/DomainError"
+  /admin/organizers:
+    get:
+      tags: [Users]
+      summary: Admin organizer list
+      responses:
+        "200":
+          description: Organizers.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+  /admin/stats:
+    get:
+      tags: [Stats]
+      summary: Admin dashboard stats
+      responses:
+        "200":
+          description: Admin dashboard metrics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+  /admin/registrations/events:
+    get:
+      tags: [Registrations]
+      summary: Admin registration event summary
+      responses:
+        "200":
+          description: Events with registration counts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventRegistrationSummary"
+  /admin/registrations:
+    get:
+      tags: [Registrations]
+      summary: Admin registration list
+      parameters:
+        - $ref: "#/components/parameters/eventIdQuery"
+      responses:
+        "200":
+          description: Registration list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Registration"
+  /admin/registrations/{registration}:
+    delete:
+      tags: [Registrations]
+      summary: Admin delete unpaid registration
+      parameters:
+        - $ref: "#/components/parameters/registration"
+      responses:
+        "200":
+          $ref: "#/components/responses/Message"
+        "422":
+          $ref: "#/components/responses/DomainError"
+  /admin/feedbacks/{feedback}/approve:
+    post:
+      tags: [Feedback]
+      summary: Approve feedback
+      parameters:
+        - $ref: "#/components/parameters/feedback"
+      responses:
+        "200":
+          description: Approved feedback.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feedback"
+  /admin/feedbacks/{feedback}:
+    delete:
+      tags: [Feedback]
+      summary: Delete feedback
+      parameters:
+        - $ref: "#/components/parameters/feedback"
+      responses:
+        "204":
+          description: Deleted.
+  /event-requests:
+    post:
+      tags: [Event Requests]
+      summary: Client submit event request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventRequestWriteRequest"
+      responses:
+        "201":
+          description: Created event request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventRequest"
+        "422":
+          $ref: "#/components/responses/DomainError"
+  /event-requests/{eventRequest}:
+    delete:
+      tags: [Event Requests]
+      summary: Client delete own pending request
+      parameters:
+        - $ref: "#/components/parameters/eventRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Message"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/DomainError"
+  /client/stats:
+    get:
+      tags: [Stats]
+      summary: Client dashboard stats
+      responses:
+        "200":
+          description: Client dashboard payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientStats"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+  parameters:
+    event:
+      name: event
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ObjectId"
+    eventRequest:
+      name: eventRequest
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ObjectId"
+    eventTask:
+      name: eventTask
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ObjectId"
+    eventActivity:
+      name: eventActivity
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ObjectId"
+    registration:
+      name: registration
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ObjectId"
+    feedback:
+      name: feedback
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ObjectId"
+    user:
+      name: user
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ObjectId"
+    notification:
+      name: notification
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ObjectId"
+    search:
+      name: q
+      in: query
+      required: false
+      schema:
+        type: string
+    eventIdQuery:
+      name: event_id
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ObjectId"
+  responses:
+    Message:
+      description: Message response.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Message"
+    Unauthorized:
+      description: Missing or invalid bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Message"
+    Forbidden:
+      description: Authenticated user is not allowed to perform the action.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Message"
+    NotFound:
+      description: Resource not found or hidden by authorization.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Message"
+    DomainError:
+      description: Domain rule rejected the action.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Message"
+    ValidationError:
+      description: Validation failed.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [message, errors]
+            properties:
+              message:
+                type: string
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+  schemas:
+    ObjectId:
+      type: string
+      pattern: "^[a-fA-F0-9]{24}$"
+      example: "665000000000000000000001"
+    IsoDateTime:
+      type: string
+      format: date-time
+      example: "2026-06-01T10:00:00Z"
+    Role:
+      type: string
+      enum: [admin, organizer, participant, client]
+    EventStatus:
+      type: string
+      enum: [draft, pending_publication, published, completed, cancelled]
+    EventRequestStatus:
+      type: string
+      enum: [pending, approved, rejected]
+    Message:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+    User:
+      type: object
+      required: [id, name, email, role]
+      properties:
+        id:
+          $ref: "#/components/schemas/ObjectId"
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/Role"
+        created_at:
+          $ref: "#/components/schemas/IsoDateTime"
+        updated_at:
+          $ref: "#/components/schemas/IsoDateTime"
+    RegisterRequest:
+      type: object
+      required: [name, email, password, password_confirmation, role]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        password_confirmation:
+          type: string
+          format: password
+        role:
+          type: string
+          enum: [participant, client]
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    AuthTokenResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+    Money:
+      oneOf:
+        - type: string
+          pattern: "^-?[0-9]+\\.[0-9]{2}$"
+          example: "15.00"
+        - type: number
+          example: 15
+    Event:
+      type: object
+      required: [id, title, description, location, start_at, capacity, registered_count, ticket_price, status]
+      properties:
+        id:
+          $ref: "#/components/schemas/ObjectId"
+        event_request_id:
+          oneOf:
+            - $ref: "#/components/schemas/ObjectId"
+            - type: "null"
+        organizer_id:
+          oneOf:
+            - $ref: "#/components/schemas/ObjectId"
+            - type: "null"
+        created_by:
+          oneOf:
+            - $ref: "#/components/schemas/ObjectId"
+            - type: "null"
+        title:
+          type: string
+        description:
+          type: string
+        image_url:
+          type:
+            - string
+            - "null"
+        location:
+          type: string
+        room:
+          type:
+            - string
+            - "null"
+        start_at:
+          $ref: "#/components/schemas/IsoDateTime"
+        end_at:
+          oneOf:
+            - $ref: "#/components/schemas/IsoDateTime"
+            - type: "null"
+        capacity:
+          type: integer
+          minimum: 1
+        registered_count:
+          type: integer
+          minimum: 0
+        tickets_count:
+          type: integer
+          minimum: 0
+        ticket_price:
+          $ref: "#/components/schemas/Money"
+        status:
+          $ref: "#/components/schemas/EventStatus"
+        organizer:
+          oneOf:
+            - $ref: "#/components/schemas/User"
+            - type: "null"
+    EventWriteRequest:
+      type: object
+      required: [title, description, location, start_at, capacity, ticket_price]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        image_data:
+          type: string
+          description: Base64-encoded image payload.
+        image_mime:
+          type: string
+          example: image/png
+        location:
+          type: string
+        room:
+          type: string
+        start_at:
+          $ref: "#/components/schemas/IsoDateTime"
+        end_at:
+          $ref: "#/components/schemas/IsoDateTime"
+        capacity:
+          type: integer
+          minimum: 1
+        ticket_price:
+          $ref: "#/components/schemas/Money"
+        status:
+          $ref: "#/components/schemas/EventStatus"
+    CapacityRequest:
+      type: object
+      required: [capacity]
+      properties:
+        capacity:
+          type: integer
+          minimum: 1
+    EventTask:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ObjectId"
+        event_id:
+          $ref: "#/components/schemas/ObjectId"
+        title:
+          type: string
+        description:
+          type:
+            - string
+            - "null"
+        is_done:
+          type: boolean
+        due_at:
+          oneOf:
+            - $ref: "#/components/schemas/IsoDateTime"
+            - type: "null"
+    EventTaskWriteRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        is_done:
+          type: boolean
+        due_at:
+          $ref: "#/components/schemas/IsoDateTime"
+    EventActivity:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ObjectId"
+        event_id:
+          $ref: "#/components/schemas/ObjectId"
+        title:
+          type: string
+        starts_at:
+          $ref: "#/components/schemas/IsoDateTime"
+        ends_at:
+          $ref: "#/components/schemas/IsoDateTime"
+        sort_order:
+          type: integer
+    EventActivityWriteRequest:
+      type: object
+      required: [title, starts_at, ends_at]
+      properties:
+        title:
+          type: string
+        starts_at:
+          $ref: "#/components/schemas/IsoDateTime"
+        ends_at:
+          $ref: "#/components/schemas/IsoDateTime"
+        sort_order:
+          type: integer
+    EventRequest:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ObjectId"
+        user_id:
+          $ref: "#/components/schemas/ObjectId"
+        title:
+          type: string
+        description:
+          type: string
+        image_url:
+          type:
+            - string
+            - "null"
+        preferred_start:
+          $ref: "#/components/schemas/IsoDateTime"
+        preferred_end:
+          $ref: "#/components/schemas/IsoDateTime"
+        location:
+          type: string
+        ticket_price:
+          $ref: "#/components/schemas/Money"
+        contact_name:
+          type: string
+        contact_email:
+          type: string
+          format: email
+        contact_phone:
+          type:
+            - string
+            - "null"
+        status:
+          $ref: "#/components/schemas/EventRequestStatus"
+        rejection_reason:
+          type:
+            - string
+            - "null"
+    EventRequestWriteRequest:
+      type: object
+      required: [title, description, preferred_start, preferred_end, location, ticket_price]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        image_data:
+          type: string
+        image_mime:
+          type: string
+        preferred_start:
+          $ref: "#/components/schemas/IsoDateTime"
+        preferred_end:
+          $ref: "#/components/schemas/IsoDateTime"
+        location:
+          type: string
+        ticket_price:
+          $ref: "#/components/schemas/Money"
+        contact_name:
+          type: string
+        contact_phone:
+          type: string
+    EventRequestReviewRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [approved, rejected]
+        rejection_reason:
+          type: string
+    Registration:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ObjectId"
+        event_id:
+          $ref: "#/components/schemas/ObjectId"
+        user_id:
+          $ref: "#/components/schemas/ObjectId"
+        status:
+          type: string
+          example: registered
+        payment_status:
+          type: string
+          enum: [pending, paid]
+        ticket_code:
+          type: string
+        amount:
+          $ref: "#/components/schemas/Money"
+        paid_at:
+          oneOf:
+            - $ref: "#/components/schemas/IsoDateTime"
+            - type: "null"
+        registered_at:
+          $ref: "#/components/schemas/IsoDateTime"
+    EventRegistrationSummary:
+      allOf:
+        - $ref: "#/components/schemas/Event"
+        - type: object
+          properties:
+            registrations_count:
+              type: integer
+              minimum: 0
+            paid_registrations_count:
+              type: integer
+              minimum: 0
+    Ticket:
+      type: object
+      required: [ticket, event, participant, location]
+      properties:
+        ticket:
+          type: string
+        event:
+          type: string
+        participant:
+          type: string
+        location:
+          type: string
+        starts_at:
+          $ref: "#/components/schemas/IsoDateTime"
+    Feedback:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ObjectId"
+        event_id:
+          $ref: "#/components/schemas/ObjectId"
+        user_id:
+          $ref: "#/components/schemas/ObjectId"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved]
+    FeedbackWriteRequest:
+      type: object
+      required: [rating, comment]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+    Notification:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ObjectId"
+        user_id:
+          $ref: "#/components/schemas/ObjectId"
+        type:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        read_at:
+          oneOf:
+            - $ref: "#/components/schemas/IsoDateTime"
+            - type: "null"
+    AdminUserWriteRequest:
+      type: object
+      required: [name, email, role]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        role:
+          $ref: "#/components/schemas/Role"
+    AdminStats:
+      type: object
+      required: [users_total, users_by_role, events_total, events_published, registrations_total, revenue, pending_requests, pending_publications, past_events]
+      properties:
+        users_total:
+          type: integer
+        users_by_role:
+          type: object
+          additionalProperties:
+            type: integer
+        events_total:
+          type: integer
+        events_published:
+          type: integer
+        registrations_total:
+          type: integer
+        revenue:
+          type: number
+        pending_requests:
+          type: integer
+        pending_publications:
+          type: integer
+        past_events:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventRegistrationSummary"
+    ClientStats:
+      type: object
+      required: [total_revenue, featured_events, past_events, can_submit_new_request, block_reason, requests]
+      properties:
+        total_revenue:
+          type: number
+        featured_events:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventRegistrationSummary"
+        past_events:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventRegistrationSummary"
+        can_submit_new_request:
+          type: boolean
+        block_reason:
+          type:
+            - string
+            - "null"
+          enum: [pending, active_event, null]
+        requests:
+          type: object
+          required: [pending, approved, rejected]
+          properties:
+            pending:
+              type: array
+              items:
+                $ref: "#/components/schemas/EventRequest"
+            approved:
+              type: array
+              items:
+                $ref: "#/components/schemas/EventRequest"
+            rejected:
+              type: array
+              items:
+                $ref: "#/components/schemas/EventRequest"
+    PaginatedEvents:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        current_page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
