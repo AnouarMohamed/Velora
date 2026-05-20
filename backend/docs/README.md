@@ -2,10 +2,16 @@
 
 This directory contains two documentation layers:
 
-- `index.html` and the generated HTML tree are phpDocumentor class reference pages for backend internals.
+- Generated phpDocumentor class reference pages for backend internals.
 - `api/` contains authored API documentation for routes, roles, request bodies, and frontend-facing contracts.
 
-The generated cache in `backend/.phpdoc/` is intentionally ignored. It is local build output and should not be committed.
+Only the authored docs in this folder are versioned:
+
+- `README.md`
+- `api/README.md`
+- `api/openapi.yaml`
+
+The generated class-doc output and the `backend/.phpdoc/` cache are local build artifacts and should not be committed.
 
 ## API Docs
 

@@ -8,6 +8,17 @@ backend/public/storage
 backend/public/build
 backend/.phpunit.cache
 backend/.phpdoc/
+backend/docs/classes/
+backend/docs/css/
+backend/docs/files/
+backend/docs/graphs/
+backend/docs/images/
+backend/docs/index.html
+backend/docs/indices/
+backend/docs/js/
+backend/docs/namespaces/
+backend/docs/packages/
+backend/docs/reports/
 
 frontend/node_modules
 frontend/dist
