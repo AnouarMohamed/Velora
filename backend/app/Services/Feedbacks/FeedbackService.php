@@ -17,6 +17,9 @@ use Illuminate\Database\Eloquent\Collection;
  * This service handles the submission of reviews by participants, moderation by admins,
  * and complex visibility rules that determine who can see which feedback based on their role
  * and relationship to the event.
+ *
+ * Feedback has stricter visibility than events: admins can moderate pending feedback, but
+ * regular users only see approved feedback after the event itself is visible to them.
  */
 class FeedbackService
 {
@@ -31,9 +34,10 @@ class FeedbackService
      */
     public function listForEvent(User $viewer, Event $event): Collection
     {
-        // Enforce that the event itself is accessible to the viewer.
+        // First hide the whole event when the viewer should not know it exists.
         $this->ensureEventIsVisibleTo($viewer, $event);
-        // Enforce specific authorization for viewing feedbacks.
+
+        // Then apply feedback-specific role rules for the visible event.
         $this->ensureCanViewFeedbacks($viewer, $event);
 
         $query = Feedback::query()
@@ -41,7 +45,7 @@ class FeedbackService
             ->with('user:id,name')
             ->orderBy('created_at', 'desc');
 
-        // Only Admins can see 'pending' feedbacks. Others see only 'approved' ones.
+        // Pending feedback is moderation data; non-admin consumers receive public feedback only.
         if (! $viewer->isAdmin()) {
             $query->where('status', Feedback::STATUS_APPROVED);
         }
@@ -66,13 +70,12 @@ class FeedbackService
             throw new FeedbackException('Événement non disponible.');
         }
 
-        // Business rule: Feedback is only allowed if the participant actually attended/paid for the event.
+        // A paid registration is the proof that the participant is allowed to review this event.
         if (! $this->participantHasPaidRegistration($participant, $event)) {
             throw new FeedbackException('Inscription payante requise pour laisser un avis.', 403);
         }
 
-        // Use updateOrCreate to allow participants to revise their review.
-        // Revised reviews are reset to 'pending' for re-moderation.
+        // Participants may revise their feedback, but every revision returns to moderation.
         $feedback = Feedback::updateOrCreate(
             [
                 'event_id' => $event->id,
@@ -87,7 +90,7 @@ class FeedbackService
 
         $feedback->load('user:id,name', 'event');
 
-        // Notify admins about the new review submission.
+        // Staff must review both first submissions and later revisions before publication.
         NotificationService::feedbackSubmitted($feedback);
 
         return $feedback;
@@ -114,7 +117,7 @@ class FeedbackService
         $feedback->update(['status' => Feedback::STATUS_APPROVED]);
         $feedback->load('user:id,name', 'event');
 
-        // Notify the author and the event's client about the approval.
+        // Approval changes public visibility, so the author and event-side stakeholders are notified.
         NotificationService::feedbackApproved($feedback);
 
         return new FeedbackApprovalResult($feedback, 'Avis publié.');
@@ -155,6 +158,7 @@ class FeedbackService
      */
     private function ensureCanViewFeedbacks(User $viewer, Event $event): void
     {
+        // Loading these relations once keeps the checks below explicit and avoids hidden lazy-loading branches.
         $event->loadMissing(['creator:id,role', 'eventRequest']);
 
         if ($viewer->isAdmin()) {
@@ -204,6 +208,7 @@ class FeedbackService
      */
     private function clientOwnsEvent(User $viewer, Event $event): bool
     {
+        // Client ownership is derived from the original event request, not from organizer assignment.
         $event->loadMissing('eventRequest');
         $eventRequest = $event->getRelation('eventRequest');
 

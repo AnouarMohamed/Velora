@@ -8,6 +8,13 @@ use MongoDB\Laravel\Connection as MongoConnection;
 use RuntimeException;
 use Throwable;
 
+/**
+ * Builds the public API health report used by Docker and manual smoke checks.
+ *
+ * This endpoint checks real runtime dependencies instead of returning a static "ok".
+ * A degraded response is still JSON so local tooling and frontend checks can show which
+ * dependency is down without reading container logs first.
+ */
 class HealthCheckService
 {
     /**
@@ -19,6 +26,7 @@ class HealthCheckService
      */
     public function report(): array
     {
+        // Keep dependency names stable because the OpenAPI contract documents these keys.
         $services = [
             'mongodb' => $this->checkMongo(),
             'redis' => $this->checkRedis(),
@@ -53,10 +61,12 @@ class HealthCheckService
         try {
             $connection = DB::connection('mongodb');
 
+            // A wrong driver here means the app is no longer running in Mongo-only mode.
             if (! $connection instanceof MongoConnection) {
                 throw new RuntimeException('MongoDB connection is not using the MongoDB driver.');
             }
 
+            // ping is cheap and verifies the current connection can talk to the Mongo server.
             $connection->getDatabase()->command(['ping' => 1])->toArray();
 
             return ['status' => 'ok'];
@@ -71,6 +81,7 @@ class HealthCheckService
     private function checkRedis(): array
     {
         try {
+            // Redis backs cache, queues, rate limiting, and sessions in the local stack.
             Redis::connection()->ping();
 
             return ['status' => 'ok'];
@@ -84,6 +95,7 @@ class HealthCheckService
      */
     private function down(Throwable $exception): array
     {
+        // Include the dependency error in local/dev health responses to speed up troubleshooting.
         return [
             'status' => 'down',
             'error' => $exception->getMessage(),

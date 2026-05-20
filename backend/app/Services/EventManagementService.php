@@ -12,6 +12,9 @@ use App\Models\User;
  * This service handles creation, updates, capacity management, organizer assignment,
  * and the publication workflow (draft -> pending -> published).
  * It enforces strict business rules regarding user roles and event status transitions.
+ *
+ * Controllers call this service instead of changing events directly so every entry point
+ * uses the same rules for organizer permissions, publication approval, and capacity safety.
  */
 class EventManagementService
 {
@@ -28,13 +31,13 @@ class EventManagementService
      */
     public function create(User $actor, array $data): Event
     {
-        // Handle image upload if provided.
+        // Store the optional image before creating the event so the event document keeps only a storage path.
         $imagePath = $this->images->storeBase64(
             $data['image_data'] ?? null,
             $data['image_mime'] ?? null,
         );
 
-        // Determine initial status based on actor's role.
+        // Admins can create a published event; organizers are forced into draft/review workflow.
         $status = $this->statusForCreate($actor, $data['status'] ?? Event::STATUS_DRAFT);
 
         $event = Event::create([
@@ -54,10 +57,10 @@ class EventManagementService
             'status' => $status,
         ]);
 
-        // Notify admins if an organizer created this.
+        // Manual organizer-created events need admin awareness before they can become public.
         NotificationService::organizerEventCreated($event, $actor);
 
-        // If an admin created and published it immediately, notify participants.
+        // Admin-created published events skip the review flow, so publish notifications happen here.
         if ($status === Event::STATUS_PUBLISHED) {
             NotificationService::eventPublished($event);
         }
@@ -76,13 +79,13 @@ class EventManagementService
      */
     public function update(User $actor, Event $event, array $data): Event
     {
-        // Enforce ownership or admin rights.
+        // Every event mutation starts with ownership/admin validation.
         $this->ensureCanManage($actor, $event);
 
-        // Filter data based on what the actor is allowed to change (e.g., status restrictions for organizers).
+        // Organizers can edit event details, but publication status transitions stay controlled.
         $data = $this->dataAllowedForActor($actor, $data);
 
-        // Prevent lowering capacity below the current number of participants.
+        // Existing registrations must remain valid after a capacity edit.
         $this->ensureCapacityCanHoldRegistrations($event, $data['capacity'] ?? null);
 
         $wasPublished = $event->status === Event::STATUS_PUBLISHED;
@@ -91,12 +94,12 @@ class EventManagementService
         $event->update($data);
         $event->refresh();
 
-        // If an admin made changes, notify the assigned organizer.
+        // Admin edits can affect operational planning, so assigned organizers are notified.
         if ($actor->isAdmin() && NotificationService::organizerIdsForEvent($event) !== []) {
             NotificationService::eventUpdatedByAdmin($event);
         }
 
-        // Handle notifications for status transitions to 'published'.
+        // Publishing is the status transition that changes participant visibility and registration access.
         if (! $wasPublished && $event->status === Event::STATUS_PUBLISHED) {
             if ($previousStatus === Event::STATUS_PENDING_PUBLICATION) {
                 NotificationService::publicationApproved($event);
@@ -127,6 +130,7 @@ class EventManagementService
      */
     public function assignOrganizer(Event $event, string $organizerId): Event
     {
+        // Admins are accepted here because they can manage organizer-level work in this application.
         $organizer = User::query()
             ->whereKey($organizerId)
             ->whereIn('role', [User::ROLE_ORGANIZER, User::ROLE_ADMIN])
@@ -135,7 +139,7 @@ class EventManagementService
         $event->update(['organizer_id' => $organizer->id]);
         $event->refresh();
 
-        // Notify the organizer about their new assignment.
+        // Only real organizers need an assignment notification; admins already see global dashboards.
         if ($organizer->role === User::ROLE_ORGANIZER) {
             NotificationService::eventAssigned($event, $organizer);
         }
@@ -156,7 +160,7 @@ class EventManagementService
             throw new EventManagementException('Publiez directement depuis l’espace administrateur.');
         }
 
-        // Only drafts or already pending events can be (re)submitted.
+        // Draft and pending events can be submitted safely; published/cancelled/completed events cannot.
         if (! in_array($event->status, [Event::STATUS_DRAFT, Event::STATUS_PENDING_PUBLICATION], true)) {
             throw new EventManagementException('Cet événement ne peut pas être soumis à publication.');
         }
@@ -164,7 +168,7 @@ class EventManagementService
         $event->update(['status' => Event::STATUS_PENDING_PUBLICATION]);
         $event->refresh();
 
-        // Notify admins that an event is ready for review.
+        // Admins are the publication gatekeepers for organizer-created events.
         NotificationService::publicationRequested($event, $actor);
 
         return $event;
@@ -188,7 +192,7 @@ class EventManagementService
         $event->update(['status' => Event::STATUS_PUBLISHED]);
         $event->refresh();
 
-        // Notify organizers and participants that the event is live.
+        // Once published, the event enters browsing and registration workflows.
         NotificationService::publicationApproved($event);
 
         return $event;
@@ -223,7 +227,7 @@ class EventManagementService
             return $requestedStatus;
         }
 
-        // Organizers cannot publish directly.
+        // Organizers may request review, but they cannot make the event public on their own.
         return $requestedStatus === Event::STATUS_PENDING_PUBLICATION
             ? Event::STATUS_PENDING_PUBLICATION
             : Event::STATUS_DRAFT;
@@ -243,7 +247,7 @@ class EventManagementService
             throw new EventManagementException('Seul un administrateur peut publier l’événement. Envoyez une demande de publication.');
         }
 
-        // Validate allowed status transitions for organizers.
+        // Unknown or admin-only statuses are ignored instead of being trusted from the request payload.
         if (! in_array($data['status'], [
             Event::STATUS_DRAFT,
             Event::STATUS_PENDING_PUBLICATION,

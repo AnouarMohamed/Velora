@@ -148,7 +148,7 @@ flowchart TD
     C --> D[User calls GET /api/notifications]
     D --> E[NotificationController returns current user inbox]
     E --> F{User marks notifications read?}
-    F -- one notification --> G[POST /api/notifications/{notification}/read]
+    F -- one notification --> G["POST notification read route"]
     F -- all notifications --> H[POST /api/notifications/read-all]
     G --> I[Set read_at]
     H --> I
@@ -181,7 +181,7 @@ Rules:
 
 ```mermaid
 flowchart TD
-    A[User requests /api/events/{event}] --> B{Event published?}
+    A["User requests event detail route"] --> B{Event published?}
     B -- yes --> C[Return event detail]
     B -- no --> D{User manages event?}
     D -- yes --> C
@@ -332,7 +332,7 @@ sequenceDiagram
     participant Event as Event model
     participant User as User model
 
-    Admin->>API: PATCH /api/admin/events/{event}/assign-organizer
+    Admin->>API: PATCH admin event organizer assignment route
     API->>Request: validate organizer_id
     Request->>User: verify user is organizer
     API->>Service: assignOrganizer(event, organizer)
@@ -406,7 +406,7 @@ sequenceDiagram
     participant Event as Event
     participant Notify as NotificationService
 
-    Admin->>API: POST /api/admin/event-requests/{id}/review decision=approved
+    Admin->>API: POST admin event request review route with decision=approved
     API->>Request: validate decision
     API->>Service: approve(eventRequest, admin)
     Service->>Mongo: start transaction
@@ -489,7 +489,7 @@ Rules:
 
 ```mermaid
 sequenceDiagram
-    actor Participant
+    actor P as Participant
     participant API as RegistrationController
     participant Service as ParticipantRegistrationService
     participant Core as RegistrationService
@@ -499,7 +499,7 @@ sequenceDiagram
     participant Payment as Payment
     participant Notify as NotificationService
 
-    Participant->>API: POST /api/events/{event}/register
+    P->>API: POST event registration route
     API->>Service: register(participant, event)
     Service->>Core: register(participant, event)
     Core->>Mongo: start transaction
@@ -514,7 +514,7 @@ sequenceDiagram
     Core->>Notify: notify admins/organizers
     Core-->>Service: registration
     Service-->>API: registration
-    API-->>Participant: 201 registration
+    API-->>P: 201 registration
 ```
 
 Rules:
@@ -564,7 +564,7 @@ Rules:
 
 ```mermaid
 sequenceDiagram
-    actor Participant
+    actor P as Participant
     participant API as RegistrationController
     participant Service as ParticipantRegistrationService
     participant Core as RegistrationService
@@ -573,7 +573,7 @@ sequenceDiagram
     participant Payment as Payment
     participant Notify as NotificationService
 
-    Participant->>API: POST /api/registrations/{registration}/pay
+    P->>API: POST registration payment route
     API->>Service: pay(participant, registration)
     Service->>Core: pay(registration)
     Core->>Mongo: start transaction
@@ -582,7 +582,7 @@ sequenceDiagram
     Mongo-->>Core: commit
     Core->>Notify: notify admins/organizers
     Core-->>API: paid registration
-    API-->>Participant: 200 registration
+    API-->>P: 200 registration
 ```
 
 Rules:
@@ -651,7 +651,7 @@ Rules:
 
 ```mermaid
 sequenceDiagram
-    actor Participant
+    actor P as Participant
     participant API as FeedbackController
     participant Request as StoreFeedbackRequest
     participant Service as FeedbackService
@@ -659,7 +659,7 @@ sequenceDiagram
     participant Feedback as Feedback
     participant Notify as NotificationService
 
-    Participant->>API: POST /api/events/{event}/feedback
+    P->>API: POST event feedback route
     API->>Request: validate rating and comment
     API->>Service: submit(participant, event, data)
     Service->>Registration: verify paid registration
@@ -669,7 +669,7 @@ sequenceDiagram
         Service->>Feedback: create pending feedback
         Service->>Notify: notify admins/organizers
         Service-->>API: feedback
-        API-->>Participant: 201 feedback
+        API-->>P: 201 feedback
     end
 ```
 

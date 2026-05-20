@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\DB;
  *
  * This service manages the transition of a request from 'pending' to either 'approved' or 'rejected'.
  * Approved requests automatically trigger the creation of a corresponding Event draft.
+ * The review operation is intentionally centralized here because approval changes two collections:
+ * the original request and, when approved, the new event.
  */
 class EventRequestReviewService
 {
@@ -31,7 +33,7 @@ class EventRequestReviewService
     {
         $this->ensureReviewerIsAdmin($reviewer);
 
-        // Update the request status and log review metadata.
+        // Rejection keeps the request as audit history and records who made the decision.
         $reviewedRequest = $this->markReviewed($eventRequest, [
             'status' => EventRequest::STATUS_REJECTED,
             'rejection_reason' => $reason,
@@ -39,7 +41,7 @@ class EventRequestReviewService
             'reviewed_by_id' => $reviewer->getKey(),
         ]);
 
-        // Notify the client about the rejection.
+        // The client needs a notification because rejected requests do not create an event record.
         NotificationService::eventRequestReviewed($reviewedRequest, EventRequest::STATUS_REJECTED);
 
         return $reviewedRequest;
@@ -58,9 +60,9 @@ class EventRequestReviewService
     {
         $this->ensureReviewerIsAdmin($reviewer);
 
-        // We use a transaction to ensure that the request update and event creation happen atomically.
+        // Approval updates the request and creates an event; both changes must commit together.
         return DB::transaction(function () use ($eventRequest, $reviewer) {
-            // Update the request status to approved.
+            // The conditional update inside markReviewed prevents double approval/rejection races.
             $reviewedRequest = $this->markReviewed($eventRequest, [
                 'status' => EventRequest::STATUS_APPROVED,
                 'rejection_reason' => null,
@@ -68,8 +70,7 @@ class EventRequestReviewService
                 'reviewed_by_id' => $reviewer->getKey(),
             ]);
 
-            // Determine the initial event timing. If preferred dates are missing,
-            // we default to 1 week from now for a 4-hour duration.
+            // Client preferred dates are optional in older/demo data, so approval has safe defaults.
             $start = $reviewedRequest->getAttribute('preferred_start');
             if (! $start instanceof Carbon) {
                 $start = now()->addWeek();
@@ -80,8 +81,7 @@ class EventRequestReviewService
                 $end = $start->copy()->addHours(4);
             }
 
-            // Transform the request data into a concrete Event draft.
-            // The event is created in 'draft' status, requiring further setup by an organizer.
+            // Approved requests become draft events so staff can still assign an organizer and refine details.
             $event = Event::create([
                 'event_request_id' => $reviewedRequest->getKey(),
                 'organizer_id' => null, // To be assigned later by an admin.
@@ -98,7 +98,7 @@ class EventRequestReviewService
                 'status' => Event::STATUS_DRAFT,
             ]);
 
-            // Notify the client that their request is now becoming an actual event.
+            // Notify after the event exists so frontend links can point to the created record when needed.
             NotificationService::eventRequestReviewed($reviewedRequest, EventRequest::STATUS_APPROVED);
 
             return [
@@ -117,7 +117,7 @@ class EventRequestReviewService
      */
     private function markReviewed(EventRequest $eventRequest, array $attributes): EventRequest
     {
-        // We use a specific 'where' clause on status to prevent race conditions (double approval/rejection).
+        // This is the workflow lock: only a still-pending request can be reviewed.
         $updated = EventRequest::query()
             ->whereKey($eventRequest->getKey())
             ->where('status', EventRequest::STATUS_PENDING)

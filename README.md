@@ -52,9 +52,25 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 - Guide API par roles: `backend/docs/api/README.md`
 - Specification OpenAPI 3.1: `backend/docs/api/openapi.yaml`
+- Carte de lecture du backend: `backend/docs/architecture/backend-map.md`
+- Documentation Merise: `backend/docs/merise/README.md`
+- Diagrammes UML des workflows: `backend/docs/uml/workflows.md`
 - Reference PHP generee: ouvrir `backend/docs/index.html` dans un navigateur
 
 Le cache phpDocumentor `backend/.phpdoc/` est ignore. Les pages generees doivent etre regenerees uniquement quand les docblocks backend changent vraiment.
+
+## Comment lire le backend
+
+Pour comprendre une fonctionnalite, suivez toujours le meme chemin:
+
+1. `backend/routes/api.php` pour voir la route, le middleware d'authentification et le role requis.
+2. `backend/app/Http/Requests/` pour voir la validation et l'autorisation d'entree.
+3. `backend/app/Http/Controllers/Api/` pour voir la forme HTTP de la reponse.
+4. `backend/app/Services/` pour lire les vraies regles metier.
+5. `backend/app/Models/` et la migration d'indexes Mongo pour comprendre les collections, les champs et les contraintes.
+6. `backend/tests/Feature/` pour confirmer le comportement attendu par role.
+
+Les commentaires dans le code sont volontaires. Ils doivent rester explicites, surtout autour des transactions Mongo, des mises a jour atomiques, des roles, des montants en centimes, des dates et des formes de reponse attendues par le frontend.
 
 ## Fonctionnalites par acteur
 

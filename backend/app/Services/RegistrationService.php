@@ -16,8 +16,13 @@ use MongoDB\Driver\Exception\BulkWriteException;
  * Service managing the lifecycle of participant registrations for events.
  *
  * This service handles registration creation, payment processing, and cancellations.
- * It ensures data integrity through database transactions and addresses concurrency
- * issues related to event capacity limits.
+ * The important rules live here because they must stay identical no matter which
+ * controller or staff workflow triggers them:
+ * - published events only;
+ * - no overbooking;
+ * - one registration per participant per event;
+ * - paid registrations cannot be cancelled;
+ * - money is persisted through the model as integer cents.
  */
 class RegistrationService
 {
@@ -32,21 +37,21 @@ class RegistrationService
      */
     public function register(User $participant, Event $event): Registration
     {
-        // Only published events allow new registrations.
+        // Participants can only register for events that are already visible and live.
         if ($event->status !== Event::STATUS_PUBLISHED) {
             throw new RegistrationException('Événement non ouvert aux inscriptions.');
         }
 
         try {
             return DB::transaction(function () use ($participant, $event) {
-                // Lock the event record to get the most accurate registered_count and prevent overbooking.
+                // Reload the event inside the transaction so capacity checks use the latest document state.
                 $freshEvent = Event::query()->whereKey($event->id)->firstOrFail();
 
                 if ((int) $freshEvent->registered_count >= (int) $freshEvent->capacity) {
                     throw new RegistrationException('Événement complet.');
                 }
 
-                // Check if the user is already registered to avoid duplicates.
+                // Friendly pre-check for duplicates; the Mongo unique index remains the final guarantee.
                 $existing = Registration::query()
                     ->where('event_id', $freshEvent->id)
                     ->where('user_id', $participant->id)
@@ -56,8 +61,8 @@ class RegistrationService
                     throw new RegistrationException('Déjà inscrit.', registration: $existing);
                 }
 
-                // Atomically increment the registered count while double-checking the capacity.
-                // This is an extra layer of protection against race conditions.
+                // The conditional increment is the overbooking guard under concurrent registrations.
+                // If another request fills the event first, this update affects zero documents.
                 $incremented = Event::query()
                     ->whereKey($freshEvent->id)
                     ->where('registered_count', '<', (int) $freshEvent->capacity)
@@ -70,7 +75,7 @@ class RegistrationService
                 $amountCents = Money::toCents($freshEvent->ticket_price);
                 $isFree = $amountCents <= 0;
 
-                // Create the registration record.
+                // The model accepts the API-compatible decimal amount and persists amount_cents.
                 $registration = Registration::create([
                     'event_id' => $freshEvent->id,
                     'user_id' => $participant->id,
@@ -82,7 +87,7 @@ class RegistrationService
                     'registered_at' => now(),
                 ]);
 
-                // If the event is free, we create a 'completed' payment record immediately.
+                // Free events still get a completed payment record so stats and ticket rules stay uniform.
                 if ($isFree) {
                     Payment::create([
                         'registration_id' => $registration->id,
@@ -95,12 +100,13 @@ class RegistrationService
                 }
 
                 $registration->load('event', 'user');
-                // Notify admins and organizers about the new participant.
+                // Staff dashboards are notification-driven, so a successful registration fans out here.
                 NotificationService::participantRegistered($registration);
 
                 return $registration;
             });
         } catch (BulkWriteException $exception) {
+            // Convert a Mongo duplicate-key race into the same domain error as the pre-check.
             $this->throwDuplicateRegistrationIfNeeded($exception, $participant, $event);
 
             throw $exception;
@@ -121,7 +127,7 @@ class RegistrationService
         return DB::transaction(function () use ($registration) {
             $amount = $registration->amount;
 
-            // Atomically update payment status to prevent double-payment.
+            // Only a pending registration can move to paid, which prevents duplicate payment records.
             $updated = Registration::query()
                 ->whereKey($registration->id)
                 ->where('payment_status', 'pending')
@@ -135,7 +141,7 @@ class RegistrationService
                 throw new RegistrationException('Déjà payé.', 200, $registration);
             }
 
-            // Create a payment record to track the transaction.
+            // This is a mock payment ledger entry, but it follows the same cents-based money storage.
             Payment::create([
                 'registration_id' => $registration->id,
                 'amount' => $amount,
@@ -152,7 +158,7 @@ class RegistrationService
                 'user',
             ]);
 
-            // Notify admins and organizers about the successful payment.
+            // Payment completion can unblock tickets and operational reporting.
             NotificationService::participantPaid($registration);
 
             return $registration;
@@ -172,7 +178,7 @@ class RegistrationService
         }
 
         DB::transaction(function () use ($registration) {
-            // Delete the registration record if it's still unpaid.
+            // Delete only if the document is still pending; a simultaneous payment wins over cancellation.
             $deleted = Registration::query()
                 ->whereKey($registration->id)
                 ->where('payment_status', 'pending')
@@ -182,7 +188,7 @@ class RegistrationService
                 throw new RegistrationException('Impossible d\'annuler une inscription déjà payée.');
             }
 
-            // Free up a slot in the event's capacity.
+            // Keep the denormalized event counter consistent with the removed registration.
             Event::query()
                 ->whereKey($registration->event_id)
                 ->where('registered_count', '>', 0)
@@ -192,6 +198,8 @@ class RegistrationService
 
     private function uniqueTicketCode(): string
     {
+        // UUID collisions are extremely unlikely, but the unique index makes them possible to detect.
+        // A few retries keep the API response clean without hiding a persistent storage problem.
         for ($attempt = 0; $attempt < 5; $attempt++) {
             $ticketCode = (string) Str::uuid();
 
@@ -204,6 +212,8 @@ class RegistrationService
     }
 
     /**
+     * Handles the race where two requests pass the duplicate pre-check before one wins the unique index.
+     *
      * @throws RegistrationException
      */
     private function throwDuplicateRegistrationIfNeeded(BulkWriteException $exception, User $participant, Event $event): void
