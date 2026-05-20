@@ -1,15 +1,19 @@
 # VELORA Backend Documentation
 
-This directory contains two documentation layers:
+This directory contains three documentation layers:
 
 - Generated phpDocumentor class reference pages for backend internals.
 - `api/` contains authored API documentation for routes, roles, request bodies, and frontend-facing contracts.
+- `architecture/`, `merise/`, and `uml/` contain authored backend explanation, Merise analysis, and workflow diagrams.
 
 Only the authored docs in this folder are versioned:
 
 - `README.md`
 - `api/README.md`
 - `api/openapi.yaml`
+- `architecture/backend-map.md`
+- `merise/README.md`
+- `uml/workflows.md`
 
 The generated class-doc output and the `backend/.phpdoc/` cache are local build artifacts and should not be committed.
 
@@ -17,6 +21,16 @@ The generated class-doc output and the `backend/.phpdoc/` cache are local build 
 
 - Human-readable route guide: `api/README.md`
 - OpenAPI 3.1 contract: `api/openapi.yaml`
+
+## Architecture And Diagrams
+
+- Backend reading map and commenting standard: `architecture/backend-map.md`
+- Merise documentation with MCD, MLD, and MCT: `merise/README.md`
+- UML-style workflow diagrams for application flows: `uml/workflows.md`
+
+## Commenting Standard
+
+Code comments and docblocks should stay. They are part of the backend's readability layer. Improve them when touching a file, especially around business rules, Mongo transactions, atomic updates, role checks, money/date representation, and frontend response compatibility.
 
 ## Regenerating Class Docs
 
