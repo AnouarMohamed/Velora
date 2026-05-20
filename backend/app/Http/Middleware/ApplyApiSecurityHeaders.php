@@ -19,8 +19,11 @@ class ApplyApiSecurityHeaders
 
     public function handle(Request $request, Closure $next): Response
     {
-        $response = $next($request);
+        return self::apply($next($request));
+    }
 
+    public static function apply(Response $response): Response
+    {
         foreach (self::HEADERS as $name => $value) {
             $response->headers->set($name, $value);
         }

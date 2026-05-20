@@ -35,4 +35,17 @@ class ApiMiddlewareTest extends TestCase
         $this->assertNotSame("bad\nheader", $response->headers->get('X-Request-Id'));
         $this->assertNotEmpty($response->headers->get('X-Request-Id'));
     }
+
+    public function test_api_error_responses_include_hardening_headers(): void
+    {
+        $this->withHeader('X-Request-Id', 'unauthenticated-check-1')
+            ->getJson('/api/user')
+            ->assertUnauthorized()
+            ->assertHeader('X-Request-Id', 'unauthenticated-check-1')
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('X-Frame-Options', 'DENY')
+            ->assertHeader('Referrer-Policy', 'no-referrer')
+            ->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()')
+            ->assertHeader('X-Permitted-Cross-Domain-Policies', 'none');
+    }
 }

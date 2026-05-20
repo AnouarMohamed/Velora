@@ -4,17 +4,19 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class AttachRequestId
 {
-    private const HEADER = 'X-Request-Id';
+    public const HEADER = 'X-Request-Id';
 
     public function handle(Request $request, Closure $next): Response
     {
-        $requestId = $this->requestId($request);
+        $requestId = self::resolve($request);
         $request->attributes->set('request_id', $requestId);
+        Log::withContext(['request_id' => $requestId]);
 
         $response = $next($request);
         $response->headers->set(self::HEADER, $requestId);
@@ -22,18 +24,18 @@ class AttachRequestId
         return $response;
     }
 
-    private function requestId(Request $request): string
+    public static function resolve(Request $request): string
     {
         $header = $request->headers->get(self::HEADER);
 
-        if (is_string($header) && $this->isValid($header)) {
+        if (is_string($header) && self::isValid($header)) {
             return $header;
         }
 
         return (string) Str::uuid();
     }
 
-    private function isValid(string $requestId): bool
+    private static function isValid(string $requestId): bool
     {
         return $requestId !== ''
             && strlen($requestId) <= 128
