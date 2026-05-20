@@ -6,8 +6,20 @@ use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * Form request for clients to submit an event proposal/request.
+ *
+ * This request handles the initial submission of an event idea by a client,
+ * including contact information and preferred scheduling.
+ */
 class StoreClientEventRequest extends FormRequest
 {
+    /**
+     * Prepare the data for validation.
+     *
+     * Automatically populates contact information from the authenticated user
+     * if not explicitly provided in the request.
+     */
     protected function prepareForValidation(): void
     {
         $user = $this->user();
@@ -21,6 +33,11 @@ class StoreClientEventRequest extends FormRequest
         ]);
     }
 
+    /**
+     * Determine if the user is authorized to make this request.
+     *
+     * Only users with the 'CLIENT' role are permitted to submit event requests.
+     */
     public function authorize(): bool
     {
         $user = $this->user();
@@ -28,7 +45,17 @@ class StoreClientEventRequest extends FormRequest
         return $user instanceof User && $user->getAttribute('role') === User::ROLE_CLIENT;
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * Rules:
+     * - title: Required string, max 255.
+     * - ticket_price: Required numeric, min 0.
+     * - contact_name/email: Required for communication.
+     * - image/image_data: Support for both binary file uploads and base64 encoded images.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

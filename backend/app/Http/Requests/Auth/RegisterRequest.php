@@ -7,9 +7,24 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Form request for new user registration.
+ *
+ * Handles the validation of data for new public accounts (Participant or Client).
+ */
 class RegisterRequest extends FormRequest
 {
-    /** @return array<string, mixed> */
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * Rules:
+     * - name: Required string, max 255.
+     * - email: Required, unique email format.
+     * - password: Required, must match confirmation, follows security defaults.
+     * - role: Required, must be either PARTICIPANT or CLIENT.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -23,7 +38,11 @@ class RegisterRequest extends FormRequest
         ];
     }
 
-    /** @return array<string, string> */
+    /**
+     * Get custom error messages for validation failures.
+     *
+     * @return array<string, string>
+     */
     public function messages(): array
     {
         return [

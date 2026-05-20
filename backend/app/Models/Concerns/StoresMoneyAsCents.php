@@ -5,9 +5,24 @@ namespace App\Models\Concerns;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
+/**
+ * Trait StoresMoneyAsCents
+ *
+ * Provides a reusable way to store monetary values as integer cents while
+ * exposing API-compatible decimal strings through Eloquent accessors.
+ */
 trait StoresMoneyAsCents
 {
-    /** @return Attribute<mixed, mixed> */
+    /**
+     * Create a money attribute for a given cents column.
+     *
+     * This helper generates a Laravel accessor/mutator pair:
+     * - get: convert integer cents to a decimal string.
+     * - set: convert decimal input to integer cents.
+     *
+     * @param  string  $centsColumn  The name of the database column storing cents
+     * @return Attribute<mixed, mixed>
+     */
     protected function moneyAttribute(string $centsColumn)
     {
         return Attribute::make(
