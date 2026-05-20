@@ -28,6 +28,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->shouldRenderJsonWhen(
+            fn (Request $request, Throwable $_exception): bool => $request->is('api/*') || $request->expectsJson()
+        );
+
         $exceptions->render(function (ApiException $exception, Request $request) {
             if (! $request->is('api/*') && ! $request->expectsJson()) {
                 return null;

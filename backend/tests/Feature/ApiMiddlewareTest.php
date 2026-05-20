@@ -48,4 +48,14 @@ class ApiMiddlewareTest extends TestCase
             ->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()')
             ->assertHeader('X-Permitted-Cross-Domain-Policies', 'none');
     }
+
+    public function test_api_errors_return_json_without_accept_header(): void
+    {
+        $this->withHeader('X-Request-Id', 'plain-request-1')
+            ->get('/api/user')
+            ->assertUnauthorized()
+            ->assertHeader('Content-Type', 'application/json')
+            ->assertHeader('X-Request-Id', 'plain-request-1')
+            ->assertJsonPath('message', 'Unauthenticated.');
+    }
 }
