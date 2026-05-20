@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\StoreUserRequest;
 use App\Http\Requests\Users\UpdateUserRequest;
+use App\Http\Requests\Users\UserIndexRequest;
 use App\Models\User;
 use App\Services\Users\UserWriteService;
 use Illuminate\Http\JsonResponse;
@@ -27,12 +28,12 @@ class UserAdminController extends Controller
      *
      * @return JsonResponse Paginated list of users, optionally filtered by role.
      */
-    public function index(Request $request)
+    public function index(UserIndexRequest $request)
     {
         $q = User::query()->orderBy('created_at', 'desc');
 
         // Optional role filter (admin, organizer, client)
-        if ($role = $request->query('role')) {
+        if ($role = $request->validated('role')) {
             $q->where('role', $role);
         }
 

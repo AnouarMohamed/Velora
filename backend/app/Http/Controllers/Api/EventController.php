@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Events\AssignEventOrganizerRequest;
+use App\Http\Requests\Events\EventIndexRequest;
 use App\Http\Requests\Events\StoreEventRequest;
 use App\Http\Requests\Events\UpdateEventCapacityRequest;
 use App\Http\Requests\Events\UpdateEventRequest;
@@ -37,13 +38,13 @@ class EventController extends Controller
      *
      * @return JsonResponse Paginated list of events.
      */
-    public function indexAll(Request $request)
+    public function indexAll(EventIndexRequest $request)
     {
         $q = Event::query()
             ->with(['organizer', 'eventRequest', 'creator:id,name,role'])
             ->orderBy('created_at', 'desc');
 
-        if ($search = $request->query('q')) {
+        if ($search = $request->validated('q')) {
             $q->where(function ($query) use ($search) {
                 $query->where('title', 'like', '%'.$search.'%')
                     ->orWhere('description', 'like', '%'.$search.'%')
@@ -125,7 +126,7 @@ class EventController extends Controller
      *
      * @return JsonResponse Paginated list of published events.
      */
-    public function browsePublished(Request $request)
+    public function browsePublished(EventIndexRequest $request)
     {
         $q = Event::query()
             ->where('status', Event::STATUS_PUBLISHED)
@@ -133,7 +134,7 @@ class EventController extends Controller
             ->with(['organizer', 'eventRequest'])
             ->orderBy('start_at', 'asc');
 
-        if ($search = $request->query('q')) {
+        if ($search = $request->validated('q')) {
             $q->where(function ($query) use ($search) {
                 $query->where('title', 'like', '%'.$search.'%')
                     ->orWhere('description', 'like', '%'.$search.'%')

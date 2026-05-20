@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\EventRequests\EventRequestIndexRequest;
 use App\Http\Requests\EventRequests\ReviewEventRequestRequest;
 use App\Http\Requests\EventRequests\StoreClientEventRequest;
 use App\Models\EventRequest;
@@ -61,15 +62,15 @@ class EventRequestController extends Controller
      *
      * @return JsonResponse Paginated list of requests.
      */
-    public function index(Request $request)
+    public function index(EventRequestIndexRequest $request)
     {
         $query = EventRequest::query()
             ->with('event')
             ->orderBy('created_at', 'desc');
 
         // Optional filtering by status (pending, approved, rejected)
-        if ($request->query('status')) {
-            $query->where('status', $request->query('status'));
+        if ($status = $request->validated('status')) {
+            $query->where('status', $status);
         }
 
         return response()->json($query->paginate(20));
