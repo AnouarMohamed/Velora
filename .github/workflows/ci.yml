@@ -81,6 +81,9 @@ jobs:
       - name: Static Analysis (PHPStan)
         run: ./vendor/bin/phpstan analyse --memory-limit=512M
 
+      - name: Validate OpenAPI Contract
+        run: php artisan test tests/Feature/OpenApiContractTest.php
+
       - name: Run Tests
         run: php artisan test
         env:

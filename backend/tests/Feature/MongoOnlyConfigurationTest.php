@@ -31,4 +31,10 @@ class MongoOnlyConfigurationTest extends TestCase
         $this->assertSame('redis', config('queue.default'));
         $this->assertSame('redis', config('session.driver'));
     }
+
+    public function test_redis_queue_timeout_is_safe_for_published_event_fan_out_job(): void
+    {
+        $this->assertSame('redis', config('queue.connections.redis.driver'));
+        $this->assertGreaterThan(120, config('queue.connections.redis.retry_after'));
+    }
 }

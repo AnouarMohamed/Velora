@@ -9,6 +9,7 @@ use App\Models\EventRequest;
 use App\Models\Feedback;
 use App\Models\Registration;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Service responsable de la gestion et de l'envoi des notifications au niveau de l'application.
@@ -22,11 +23,11 @@ class NotificationService
     /**
      * Envoie une notification à un ou plusieurs utilisateurs.
      *
-     * @param  string|int|array  $userIds  Un seul ID d'utilisateur ou un tableau d'IDs d'utilisateurs à notifier.
+     * @param  string|int|list<string|int>  $userIds  Un seul ID d'utilisateur ou un tableau d'IDs d'utilisateurs à notifier.
      * @param  string  $type  La catégorie/le type de notification (ex: 'admin_user_registered').
      * @param  string  $title  Le titre court et descriptif de la notification.
      * @param  string  $message  Le corps du contenu principal de la notification.
-     * @param  array  $data  Métadonnées optionnelles (ex: liens, IDs de ressources) pour la navigation frontend ou le contexte.
+     * @param  array<string, mixed>  $data  Métadonnées optionnelles (ex: liens, IDs de ressources) pour la navigation frontend ou le contexte.
      */
     public static function send(
         string|int|array $userIds,
@@ -35,8 +36,11 @@ class NotificationService
         string $message,
         array $data = [],
     ): void {
-        // S'assurer d'avoir une liste unique d'IDs d'utilisateurs valides pour éviter les notifications en double.
-        $ids = array_unique(array_filter(is_array($userIds) ? $userIds : [$userIds]));
+        $ids = [];
+        foreach (is_array($userIds) ? $userIds : [$userIds] as $userId) {
+            $ids[] = (string) $userId;
+        }
+        $ids = array_values(array_unique($ids));
 
         foreach ($ids as $userId) {
             AppNotification::create([
@@ -56,7 +60,16 @@ class NotificationService
      */
     public static function adminIds(): array
     {
-        return User::query()->where('role', User::ROLE_ADMIN)->pluck('id')->all();
+        $ids = User::query()
+            ->where('role', User::ROLE_ADMIN)
+            ->pluck('id')
+            ->filter(fn (mixed $id): bool => is_int($id) || is_string($id))
+            ->map(fn (mixed $id): string => (string) $id)
+            ->values()
+            ->all();
+
+        /** @var list<string> $ids */
+        return $ids;
     }
 
     /**
@@ -68,7 +81,7 @@ class NotificationService
     {
         // Les clients sont identifiés par leur e-mail de contact fourni dans la demande.
         return User::query()
-            ->where('email', $request->contact_email)
+            ->where('email', self::stringValue($request->getAttribute('contact_email')))
             ->where('role', User::ROLE_CLIENT)
             ->first();
     }
@@ -127,8 +140,8 @@ class NotificationService
             self::adminIds(),
             'admin_user_registered',
             'Nouvel utilisateur',
-            sprintf('%s (%s) vient de s’inscrire en tant que %s.', $user->name, $user->email, $user->role),
-            ['user_id' => $user->id, 'link' => '/admin/users'],
+            sprintf('%s (%s) vient de s’inscrire en tant que %s.', self::stringValue($user->getAttribute('name')), self::stringValue($user->getAttribute('email')), self::stringValue($user->getAttribute('role'))),
+            ['user_id' => self::modelId($user), 'link' => '/admin/users'],
         );
     }
 
@@ -141,8 +154,8 @@ class NotificationService
             self::adminIds(),
             'admin_event_request_pending',
             'Demande d’événement à valider',
-            sprintf('Nouvelle demande : « %s ».', $request->title),
-            ['event_request_id' => $request->id, 'link' => '/admin/requests'],
+            sprintf('Nouvelle demande : « %s ».', self::stringValue($request->getAttribute('title'))),
+            ['event_request_id' => self::modelId($request), 'link' => '/admin/requests'],
         );
     }
 
@@ -160,19 +173,19 @@ class NotificationService
 
         if ($decision === 'approved') {
             self::send(
-                $client->id,
+                self::modelId($client),
                 'client_request_approved',
                 'Demande acceptée',
-                sprintf('Votre demande « %s » a été acceptée.', $request->title),
-                ['event_request_id' => $request->id, 'link' => '/client/stats'],
+                sprintf('Votre demande « %s » a été acceptée.', self::stringValue($request->getAttribute('title'))),
+                ['event_request_id' => self::modelId($request), 'link' => '/client/stats'],
             );
         } else {
             self::send(
-                $client->id,
+                self::modelId($client),
                 'client_request_rejected',
                 'Demande refusée',
-                sprintf('Votre demande « %s » a été refusée.', $request->title),
-                ['event_request_id' => $request->id, 'link' => '/client/stats'],
+                sprintf('Votre demande « %s » a été refusée.', self::stringValue($request->getAttribute('title'))),
+                ['event_request_id' => self::modelId($request), 'link' => '/client/stats'],
             );
         }
     }
@@ -190,8 +203,8 @@ class NotificationService
             self::adminIds(),
             'admin_organizer_event_created',
             'Événement créé par un organisateur',
-            sprintf('%s a créé l’événement « %s ».', $creator->name, $event->title),
-            ['event_id' => $event->id, 'link' => '/admin/organizer-events'],
+            sprintf('%s a créé l’événement « %s ».', self::stringValue($creator->getAttribute('name')), self::eventTitle($event)),
+            ['event_id' => self::modelId($event), 'link' => '/admin/organizer-events'],
         );
     }
 
@@ -204,8 +217,8 @@ class NotificationService
             self::adminIds(),
             'admin_publication_requested',
             'Publication à approuver',
-            sprintf('%s demande la publication de « %s ».', $requester->name, $event->title),
-            ['event_id' => $event->id, 'link' => '/admin/events'],
+            sprintf('%s demande la publication de « %s ».', self::stringValue($requester->getAttribute('name')), self::eventTitle($event)),
+            ['event_id' => self::modelId($event), 'link' => '/admin/events'],
         );
     }
 
@@ -215,11 +228,11 @@ class NotificationService
     public static function eventAssigned(Event $event, User $organizer): void
     {
         self::send(
-            $organizer->id,
+            self::modelId($organizer),
             'organizer_event_assigned',
             'Événement assigné',
-            sprintf('L’administrateur vous a assigné l’événement « %s ».', $event->title),
-            ['event_id' => $event->id, 'link' => '/organizer/events/'.$event->id],
+            sprintf('L’administrateur vous a assigné l’événement « %s ».', self::eventTitle($event)),
+            ['event_id' => self::modelId($event), 'link' => '/organizer/events/'.self::modelId($event)],
         );
     }
 
@@ -237,8 +250,8 @@ class NotificationService
             $organizerIds,
             'organizer_event_updated',
             'Événement modifié',
-            sprintf('L’administrateur a modifié « %s ».', $event->title),
-            ['event_id' => $event->id, 'link' => '/organizer/events/'.$event->id],
+            sprintf('L’administrateur a modifié « %s ».', self::eventTitle($event)),
+            ['event_id' => self::modelId($event), 'link' => '/organizer/events/'.self::modelId($event)],
         );
     }
 
@@ -253,8 +266,8 @@ class NotificationService
                 $organizerIds,
                 'organizer_publication_approved',
                 'Publication approuvée',
-                sprintf('« %s » est maintenant publié en ligne.', $event->title),
-                ['event_id' => $event->id, 'link' => '/events/'.$event->id],
+                sprintf('« %s » est maintenant publié en ligne.', self::eventTitle($event)),
+                ['event_id' => self::modelId($event), 'link' => '/events/'.self::modelId($event)],
             );
         }
 
@@ -269,21 +282,21 @@ class NotificationService
     {
         // La diffusion aux participants peut toucher des dizaines de milliers de comptes ; elle sort donc du cycle HTTP.
         FanOutPublishedEventNotifications::dispatch(
-            (string) $event->getKey(),
+            self::modelId($event),
             'Nouvel événement',
-            sprintf('« %s » est disponible à l’inscription.', $event->title),
-            ['event_id' => $event->id, 'link' => '/events/'.$event->id],
+            sprintf('« %s » est disponible à l’inscription.', self::eventTitle($event)),
+            ['event_id' => self::modelId($event), 'link' => '/events/'.self::modelId($event)],
         );
 
         // Notifier le client qui a initialement demandé l'événement.
         $client = self::clientUserForEvent($event);
         if ($client) {
             self::send(
-                $client->id,
+                self::modelId($client),
                 'client_event_published',
                 'Événement publié',
-                sprintf('Votre événement « %s » est maintenant en ligne.', $event->title),
-                ['event_id' => $event->id, 'link' => '/client/stats'],
+                sprintf('Votre événement « %s » est maintenant en ligne.', self::eventTitle($event)),
+                ['event_id' => self::modelId($event), 'link' => '/client/stats'],
             );
         }
     }
@@ -301,22 +314,22 @@ class NotificationService
         }
 
         $participant = $registration->relationLoaded('user') ? $registration->getRelation('user') : null;
-        $name = $participant instanceof User ? $participant->getAttribute('name') : 'Un participant';
+        $name = $participant instanceof User ? self::stringValue($participant->getAttribute('name')) : 'Un participant';
 
         self::send(
             self::adminIds(),
             'admin_participant_registered',
             'Nouvelle inscription',
-            sprintf('%s s’est inscrit à « %s ».', $name, $event->title),
-            ['event_id' => $event->id, 'registration_id' => $registration->id, 'link' => '/admin/registrations'],
+            sprintf('%s s’est inscrit à « %s ».', $name, self::eventTitle($event)),
+            ['event_id' => self::modelId($event), 'registration_id' => self::modelId($registration), 'link' => '/admin/registrations'],
         );
 
         self::send(
             self::organizerIdsForEvent($event),
             'organizer_participant_registered',
             'Nouvelle inscription',
-            sprintf('%s s’est inscrit à « %s ».', $name, $event->title),
-            ['event_id' => $event->id, 'link' => '/organizer/registrations'],
+            sprintf('%s s’est inscrit à « %s ».', $name, self::eventTitle($event)),
+            ['event_id' => self::modelId($event), 'link' => '/organizer/registrations'],
         );
     }
 
@@ -332,22 +345,22 @@ class NotificationService
         }
 
         $participant = $registration->relationLoaded('user') ? $registration->getRelation('user') : null;
-        $name = $participant instanceof User ? $participant->getAttribute('name') : 'Un participant';
+        $name = $participant instanceof User ? self::stringValue($participant->getAttribute('name')) : 'Un participant';
 
         self::send(
             self::adminIds(),
             'admin_participant_paid',
             'Paiement reçu',
-            sprintf('%s a payé son billet pour « %s ».', $name, $event->title),
-            ['event_id' => $event->id, 'registration_id' => $registration->id, 'link' => '/admin/registrations'],
+            sprintf('%s a payé son billet pour « %s ».', $name, self::eventTitle($event)),
+            ['event_id' => self::modelId($event), 'registration_id' => self::modelId($registration), 'link' => '/admin/registrations'],
         );
 
         self::send(
             self::organizerIdsForEvent($event),
             'organizer_participant_paid',
             'Billet payé',
-            sprintf('%s a payé pour « %s ».', $name, $event->title),
-            ['event_id' => $event->id, 'link' => '/organizer/registrations'],
+            sprintf('%s a payé pour « %s ».', $name, self::eventTitle($event)),
+            ['event_id' => self::modelId($event), 'link' => '/organizer/registrations'],
         );
     }
 
@@ -364,22 +377,22 @@ class NotificationService
         }
 
         $feedbackAuthor = $feedback->relationLoaded('user') ? $feedback->getRelation('user') : null;
-        $author = $feedbackAuthor instanceof User ? $feedbackAuthor->getAttribute('name') : 'Un participant';
+        $author = $feedbackAuthor instanceof User ? self::stringValue($feedbackAuthor->getAttribute('name')) : 'Un participant';
 
         self::send(
             self::adminIds(),
             'admin_feedback_received',
             'Nouvel avis',
-            sprintf('%s a laissé un avis sur « %s » (en attente de validation).', $author, $event->title),
-            ['event_id' => $event->id, 'feedback_id' => $feedback->id, 'link' => '/events/'.$event->id],
+            sprintf('%s a laissé un avis sur « %s » (en attente de validation).', $author, self::eventTitle($event)),
+            ['event_id' => self::modelId($event), 'feedback_id' => self::modelId($feedback), 'link' => '/events/'.self::modelId($event)],
         );
 
         self::send(
             self::organizerIdsForEvent($event),
             'organizer_feedback_received',
             'Nouvel avis',
-            sprintf('%s a laissé un avis sur « %s ».', $author, $event->title),
-            ['event_id' => $event->id, 'link' => '/organizer/events/'.$event->id],
+            sprintf('%s a laissé un avis sur « %s ».', $author, self::eventTitle($event)),
+            ['event_id' => self::modelId($event), 'link' => '/organizer/events/'.self::modelId($event)],
         );
     }
 
@@ -394,11 +407,11 @@ class NotificationService
         // Notifier l'auteur que son avis est maintenant en ligne.
         if ($feedback->user_id) {
             self::send(
-                $feedback->user_id,
+                self::stringValue($feedback->user_id),
                 'participant_feedback_approved',
                 'Avis publié',
-                sprintf('Votre avis sur « %s » a été publié.', $event instanceof Event ? $event->getAttribute('title') : 'l’événement'),
-                ['event_id' => $event?->id, 'link' => $event ? '/events/'.$event->id : '/my-registrations'],
+                sprintf('Votre avis sur « %s » a été publié.', $event instanceof Event ? self::eventTitle($event) : 'l’événement'),
+                ['event_id' => $event instanceof Event ? self::modelId($event) : null, 'link' => $event instanceof Event ? '/events/'.self::modelId($event) : '/my-registrations'],
             );
         }
 
@@ -408,15 +421,32 @@ class NotificationService
             // Ne pas notifier le client s'il est celui qui a écrit l'avis (peu probable mais possible).
             if ($client && $client->id !== $feedback->user_id) {
                 $feedbackAuthor = $feedback->relationLoaded('user') ? $feedback->getRelation('user') : null;
-                $author = $feedbackAuthor instanceof User ? $feedbackAuthor->getAttribute('name') : 'Un participant';
+                $author = $feedbackAuthor instanceof User ? self::stringValue($feedbackAuthor->getAttribute('name')) : 'Un participant';
                 self::send(
-                    $client->id,
+                    self::modelId($client),
                     'client_feedback_on_event',
                     'Nouveau commentaire',
-                    sprintf('%s a publié un avis sur « %s ».', $author, $event->title),
-                    ['event_id' => $event->id, 'link' => '/client/stats'],
+                    sprintf('%s a publié un avis sur « %s ».', $author, self::eventTitle($event)),
+                    ['event_id' => self::modelId($event), 'link' => '/client/stats'],
                 );
             }
         }
+    }
+
+    private static function eventTitle(Event $event): string
+    {
+        return self::stringValue($event->getAttribute('title'));
+    }
+
+    private static function modelId(Model $model): string
+    {
+        $id = $model->getKey();
+
+        return is_int($id) || is_string($id) ? (string) $id : '';
+    }
+
+    private static function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 }

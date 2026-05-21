@@ -22,7 +22,7 @@ class EventRequestEligibilityService
      */
     public function blockingReasonFor(User $client): ?string
     {
-        return $this->blockingReasonForEmail((string) $client->getAttribute('email'));
+        return $this->blockingReasonForEmail($this->stringValue($client->getAttribute('email')));
     }
 
     /**
@@ -53,6 +53,8 @@ class EventRequestEligibilityService
             ->where('contact_email', $email)
             ->where('status', EventRequest::STATUS_APPROVED)
             ->pluck('id')
+            ->map(fn (mixed $id): string => $this->stringValue($id))
+            ->values()
             ->all();
 
         // Si aucune demande n'a jamais été approuvée, ils sont éligibles.
@@ -64,7 +66,7 @@ class EventRequestEligibilityService
         $eventsByRequestId = Event::query()
             ->whereIn('event_request_id', $approvedRequestIds)
             ->get()
-            ->keyBy(fn (Event $event) => (string) $event->getAttribute('event_request_id'));
+            ->keyBy(fn (Event $event): string => $this->stringValue($event->getAttribute('event_request_id')));
 
         foreach ($approvedRequestIds as $approvedRequestId) {
             $event = $eventsByRequestId->get((string) $approvedRequestId);
@@ -84,5 +86,10 @@ class EventRequestEligibilityService
 
         // Si toutes les demandes approuvées précédentes ont abouti à des événements terminés, l'utilisateur est de nouveau éligible.
         return null;
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 }

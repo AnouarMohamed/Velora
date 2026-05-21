@@ -94,8 +94,13 @@ class EventActivityService
      */
     private function ensureActivityBelongsToEvent(EventActivity $activity, Event $event): void
     {
-        if ((string) $activity->getAttribute('event_id') !== (string) $event->getKey()) {
+        if ($this->stringValue($activity->getAttribute('event_id')) !== $this->stringValue($event->getKey())) {
             throw new EventManagementException('Not Found', 404);
         }
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 }

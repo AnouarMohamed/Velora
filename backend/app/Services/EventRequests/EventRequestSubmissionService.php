@@ -54,8 +54,8 @@ class EventRequestSubmissionService
         $image = $data['image'] ?? null;
         $imagePath = $this->images->store(
             $image instanceof UploadedFile ? $image : null,
-            isset($data['image_data']) ? (string) $data['image_data'] : null,
-            isset($data['image_mime']) ? (string) $data['image_mime'] : null,
+            $this->nullableString($data['image_data'] ?? null),
+            $this->nullableString($data['image_mime'] ?? null),
         );
 
         // Supprimer les données d'image éphémères avant de sauvegarder en base de données.
@@ -88,7 +88,7 @@ class EventRequestSubmissionService
     public function delete(User $client, EventRequest $eventRequest): void
     {
         // Vérification de la propriété basée sur l'e-mail de contact (les clients peuvent ne pas toujours être connectés lors de certains flux).
-        if (strcasecmp((string) $eventRequest->getAttribute('contact_email'), (string) $client->getAttribute('email')) !== 0) {
+        if (strcasecmp($this->stringValue($eventRequest->getAttribute('contact_email')), $this->stringValue($client->getAttribute('email'))) !== 0) {
             throw new EventRequestException('Demande introuvable.', 404);
         }
 
@@ -115,5 +115,15 @@ class EventRequestSubmissionService
         return $blockReason === 'pending'
             ? 'Vous avez déjà une demande en attente. Supprimez-la pour en envoyer une nouvelle.'
             : 'Votre événement est encore en cours. Attendez sa fin pour envoyer une nouvelle demande.';
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 }

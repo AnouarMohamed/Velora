@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Event;
+use App\Models\EventRequest;
 use Illuminate\Console\Command;
 
 /**
@@ -44,8 +45,13 @@ class SyncEventImages extends Command
             ->whereHas('eventRequest', fn ($q) => $q->whereNotNull('image_path'))
             ->with('eventRequest')
             ->each(function (Event $event) use (&$count) {
+                $eventRequest = $event->eventRequest;
+                if (! $eventRequest instanceof EventRequest || $eventRequest->image_path === null) {
+                    return;
+                }
+
                 // Met à jour le chemin d'image de l'événement à partir de sa demande
-                $event->update(['image_path' => $event->eventRequest->image_path]);
+                $event->update(['image_path' => $eventRequest->image_path]);
                 $count++;
             });
 

@@ -43,7 +43,9 @@ class FeedbackController extends ApiController
      */
     public function store(StoreFeedbackRequest $request, Event $event)
     {
-        $feedback = $this->feedbacks->submit($this->actor($request), $event, $request->validated());
+        /** @var array{rating: int, comment?: string|null} $data */
+        $data = $request->validated();
+        $feedback = $this->feedbacks->submit($this->actor($request), $event, $data);
 
         return FeedbackResource::make($feedback)
             ->additional(['message' => 'Votre avis a bien été envoyé. Il sera visible après validation par notre équipe.'])

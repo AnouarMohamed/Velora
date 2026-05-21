@@ -59,7 +59,10 @@ class EnsureRole
             abort(403, 'Accès refusé pour ce rôle.');
         }
 
-        return $next($request);
+        $response = $next($request);
+        abort_unless($response instanceof Response, 500);
+
+        return $response;
     }
 
     private function normalizeRole(string $role): string

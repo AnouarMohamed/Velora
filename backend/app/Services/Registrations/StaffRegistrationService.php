@@ -137,7 +137,7 @@ class StaffRegistrationService
     /**
      * Logique centrale pour lister et filtrer les inscriptions sur tous les événements accessibles.
      *
-     * @param  Builder  $eventsQuery  Requête d'événement scopée basée sur le rôle.
+     * @param  Builder<Event>  $eventsQuery  Requête d'événement scopée basée sur le rôle.
      * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
@@ -151,7 +151,7 @@ class StaffRegistrationService
         }
 
         // Vérification de sécurité : si un event_id spécifique est demandé, s'assurer qu'il fait partie des événements accessibles.
-        $eventId = isset($filters['event_id']) ? (string) $filters['event_id'] : null;
+        $eventId = $this->optionalString($filters['event_id'] ?? null);
         if ($eventId !== null && ! in_array($eventId, $eventIds, true)) {
             throw new RegistrationException('Accès refusé pour ce rôle.', 403);
         }
@@ -175,8 +175,9 @@ class StaffRegistrationService
         }
 
         // Appliquer la recherche par mot-clé (nom, e-mail, titre, code du billet)
-        if (! empty($filters['q'])) {
-            $this->applySearch($registrationsQuery, (string) $filters['q']);
+        $search = $this->optionalString($filters['q'] ?? null);
+        if ($search !== null) {
+            $this->applySearch($registrationsQuery, $search);
         }
 
         // Calculer le résumé avant la pagination
@@ -198,14 +199,14 @@ class StaffRegistrationService
     /**
      * Effectue une suppression définitive d'une inscription et met à jour les compteurs d'événements.
      *
-     * @param  Builder  $eventsQuery  Requête de contrôle d'accès.
+     * @param  Builder<Event>  $eventsQuery  Requête de contrôle d'accès.
      */
     private function delete(Registration $registration, Builder $eventsQuery): void
     {
         $eventIds = $this->eventIds($eventsQuery);
 
         // Vérifier que l'inscription appartient à un événement géré par le membre du personnel.
-        if (! in_array((string) $registration->getAttribute('event_id'), $eventIds, true)) {
+        if (! in_array($this->stringValue($registration->getAttribute('event_id')), $eventIds, true)) {
             throw new RegistrationException('Accès refusé pour ce rôle.', 403);
         }
 
@@ -245,14 +246,21 @@ class StaffRegistrationService
         return ['id', 'title', 'start_at', 'status', 'registered_count', 'capacity'];
     }
 
-    /** @return list<string> Identifiants des événements dans la requête. */
+    /**
+     * @param  Builder<Event>  $eventsQuery
+     * @return list<string>
+     */
     private function eventIds(Builder $eventsQuery): array
     {
-        return (clone $eventsQuery)
+        $ids = (clone $eventsQuery)
             ->pluck('id')
+            ->filter(fn (mixed $eventId): bool => is_scalar($eventId))
             ->map(fn (mixed $eventId): string => (string) $eventId)
             ->values()
             ->all();
+
+        /** @var list<string> $ids */
+        return $ids;
     }
 
     /** @return array<string, mixed> Structure vide pour les réponses de liste. */
@@ -299,7 +307,7 @@ class StaffRegistrationService
     /**
      * Applique la recherche par mot-clé sur plusieurs entités liées.
      *
-     * @param  Builder  $query  Requête d'inscription.
+     * @param  Builder<Registration>  $query  Requête d'inscription.
      * @param  string  $search  Terme de recherche.
      */
     private function applySearch(Builder $query, string $search): void
@@ -328,5 +336,21 @@ class StaffRegistrationService
         if (! $user->isAdmin()) {
             throw new RegistrationException('Accès refusé pour ce rôle.', 403);
         }
+    }
+
+    private function optionalString(mixed $value): ?string
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 }

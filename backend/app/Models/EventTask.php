@@ -73,6 +73,8 @@ class EventTask extends Model
 
     /**
      * Définit la relation pour l'événement parent.
+     *
+     * @return BelongsTo<Event, $this>
      */
     public function event(): BelongsTo
     {
@@ -81,6 +83,8 @@ class EventTask extends Model
 
     /**
      * Définit la relation pour l'utilisateur assigné.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function assignee(): BelongsTo
     {

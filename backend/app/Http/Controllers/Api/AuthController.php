@@ -36,7 +36,9 @@ class AuthController extends Controller
     public function register(RegisterRequest $request)
     {
         // Déléguer la création de l'utilisateur au service
-        $user = $this->users->create($request->validated());
+        /** @var array{name: string, email: string, password: string, role: string} $data */
+        $data = $request->validated();
+        $user = $this->users->create($data);
 
         // Créer un jeton Sanctum pour le nouvel utilisateur
         $token = $user->createToken('spa')->plainTextToken;

@@ -21,7 +21,7 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property string $status Statut du paiement (ex: pending, completed, failed, refunded)
  * @property string|null $transaction_id ID de transaction externe du fournisseur de paiement
  * @property string|null $method Méthode de paiement utilisée (ex: credit_card, paypal)
- * @property array|null $meta Métadonnées supplémentaires du fournisseur de paiement
+ * @property array<string, mixed>|null $meta Métadonnées supplémentaires du fournisseur de paiement
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read float $amount Montant calculé du paiement dans l'unité monétaire principale
@@ -89,14 +89,18 @@ class Payment extends Model
 
     /**
      * Accesseur pour le montant du paiement, convertissant les centimes en décimal.
+     *
+     * @return Attribute<string|null, mixed>
      */
     protected function amount(): Attribute
     {
-        return $this->moneyAttribute('amount_cents');
+        return $this->moneyCast('amount_cents');
     }
 
     /**
      * Définit la relation pour l'inscription associée.
+     *
+     * @return BelongsTo<Registration, $this>
      */
     public function registration(): BelongsTo
     {

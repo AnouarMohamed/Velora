@@ -33,12 +33,12 @@ class EventManagementService
     {
         // Stocker l'image optionnelle avant de créer l'événement pour que le document de l'événement ne conserve qu'un chemin de stockage.
         $imagePath = $this->images->storeBase64(
-            $data['image_data'] ?? null,
-            $data['image_mime'] ?? null,
+            $this->nullableString($data['image_data'] ?? null),
+            $this->nullableString($data['image_mime'] ?? null),
         );
 
         // Les administrateurs peuvent créer un événement publié ; les organisateurs sont contraints au flux de projet/révision.
-        $status = $this->statusForCreate($actor, $data['status'] ?? Event::STATUS_DRAFT);
+        $status = $this->statusForCreate($actor, $this->stringValue($data['status'] ?? Event::STATUS_DRAFT));
 
         $event = Event::create([
             'event_request_id' => null, // La création directe n'a pas de demande source.
@@ -213,7 +213,7 @@ class EventManagementService
      */
     private function ensureCapacityCanHoldRegistrations(Event $event, mixed $capacity): void
     {
-        if ($capacity !== null && (int) $capacity < (int) $event->registered_count) {
+        if ($capacity !== null && $this->intValue($capacity) < $this->intValue($event->registered_count)) {
             throw new EventManagementException('La capacité ne peut pas être inférieure au nombre d’inscrits.');
         }
     }
@@ -235,20 +235,24 @@ class EventManagementService
 
     /**
      * Nettoie et restreint les attributs en fonction du rôle de l'utilisateur.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
      */
     private function dataAllowedForActor(User $actor, array $data): array
     {
-        if (! isset($data['status']) || $actor->isAdmin()) {
+        $status = $data['status'] ?? null;
+        if (! is_string($status) || $actor->isAdmin()) {
             return $data;
         }
 
         // Les organisateurs ne peuvent pas définir le statut à "publié" via une mise à jour standard.
-        if ($data['status'] === Event::STATUS_PUBLISHED) {
+        if ($status === Event::STATUS_PUBLISHED) {
             throw new EventManagementException('Seul un administrateur peut publier l’événement. Envoyez une demande de publication.');
         }
 
         // Les statuts inconnus ou réservés aux administrateurs sont ignorés au lieu d'être acceptés à partir de la charge utile de la requête.
-        if (! in_array($data['status'], [
+        if (! in_array($status, [
             Event::STATUS_DRAFT,
             Event::STATUS_PENDING_PUBLICATION,
             Event::STATUS_CANCELLED,
@@ -257,5 +261,20 @@ class EventManagementService
         }
 
         return $data;
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function intValue(mixed $value): int
+    {
+        return is_int($value) || is_float($value) || is_string($value) ? (int) $value : 0;
     }
 }

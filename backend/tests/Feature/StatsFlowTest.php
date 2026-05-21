@@ -56,6 +56,23 @@ class StatsFlowTest extends TestCase
             ->assertJsonPath('past_events.0.event_request.contact_email', 'client@example.test');
     }
 
+    public function test_admin_stats_cache_is_invalidated_after_tracked_model_changes(): void
+    {
+        $admin = $this->user(User::ROLE_ADMIN);
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/admin/stats')
+            ->assertOk()
+            ->assertJsonPath('users_total', 1);
+
+        $this->user(User::ROLE_CLIENT);
+
+        $this->getJson('/api/admin/stats')
+            ->assertOk()
+            ->assertJsonPath('users_total', 2)
+            ->assertJsonPath('users_by_role.client', 1);
+    }
+
     public function test_client_stats_group_requests_and_sum_revenue_for_owned_events(): void
     {
         $client = $this->user(User::ROLE_CLIENT, [

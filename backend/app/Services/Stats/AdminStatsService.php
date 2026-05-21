@@ -52,6 +52,11 @@ class AdminStatsService
         );
     }
 
+    public static function forgetCache(): void
+    {
+        Cache::forget(self::CACHE_KEY);
+    }
+
     /**
      * @return array<string, mixed>
      */

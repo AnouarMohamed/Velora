@@ -18,7 +18,7 @@ use MongoDB\Laravel\Eloquent\DocumentModel;
  * @property string $tokenable_id ID du modèle propriétaire du jeton
  * @property string $name Nom convivial du jeton
  * @property string $token Valeur du jeton hachée
- * @property array|null $abilities Liste des permissions accordées à ce jeton
+ * @property array<int, string>|null $abilities Liste des permissions accordées à ce jeton
  * @property Carbon|null $last_used_at Horodatage de la dernière utilisation du jeton
  * @property Carbon|null $expires_at Horodatage de l'expiration du jeton
  * @property Carbon|null $created_at

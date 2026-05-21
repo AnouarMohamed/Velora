@@ -58,12 +58,14 @@ class UserWriteService
      */
     public function update(User $user, array $data): User
     {
-        if (isset($data['email'])) {
-            $this->ensureEmailIsAvailable((string) $data['email'], $user);
+        $email = $data['email'] ?? null;
+        if (is_scalar($email)) {
+            $this->ensureEmailIsAvailable((string) $email, $user);
         }
 
-        if (! empty($data['password'])) {
-            $data['password'] = Hash::make((string) $data['password']);
+        $password = $data['password'] ?? null;
+        if (is_string($password) && $password !== '') {
+            $data['password'] = Hash::make($password);
         } else {
             unset($data['password']);
         }
@@ -89,11 +91,18 @@ class UserWriteService
      */
     public function delete(User $actor, User $user): void
     {
-        if ((string) $user->getKey() === (string) $actor->getKey()) {
+        if ($this->modelKey($user) === $this->modelKey($actor)) {
             throw new UserManagementException('Impossible de supprimer votre propre compte.');
         }
 
         $user->delete();
+    }
+
+    private function modelKey(User $user): string
+    {
+        $key = $user->getKey();
+
+        return is_scalar($key) ? (string) $key : '';
     }
 
     /**

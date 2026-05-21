@@ -17,8 +17,9 @@ Ce document est la référence courte pour expliquer ce qui est déjà durci dan
 | Santé API | Dépendances réelles | `HealthCheckService` vérifie MongoDB et Redis |
 | Erreurs santé en production | Messages génériques | `APP_DEBUG=false` masque les messages d'exception de dépendances |
 | En-têtes de sécurité | Middleware API | `ApplyApiSecurityHeaders` inclut CSP, frame denial, nosniff, policies |
-| Analyse statique | PHPStan max avec baseline | `phpstan.neon` niveau `max`, baseline legacy suivie |
+| Analyse statique | PHPStan max sans baseline | `phpstan.neon` niveau `max`, aucune baseline ignorée |
 | CI | Gates automatisés | `.github/workflows/ci.yml` exécute Pint, PHPStan, tests, audits et scans Trivy |
+| Contrat OpenAPI | Test automatisé | `OpenApiContractTest` parse `openapi.yaml` et vérifie les points sensibles |
 
 ## Checklist Production
 
@@ -30,6 +31,7 @@ Ce document est la référence courte pour expliquer ce qui est déjà durci dan
 - MongoDB en replica set, avec sauvegardes testées.
 - Redis protégé par réseau privé et mot de passe si exposé hors host local.
 - `QUEUE_CONNECTION=redis`
+- `REDIS_QUEUE_RETRY_AFTER` supérieur au timeout du job le plus long. Le défaut local est `180` secondes pour un job de diffusion à `120` secondes.
 - Worker de queue actif, par exemple `php artisan queue:work redis --tries=3 --timeout=120`.
 - Supervision du worker : redémarrage automatique, alertes sur jobs échoués, logs persistés.
 - HTTPS terminé devant l'API.

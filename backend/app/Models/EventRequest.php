@@ -120,14 +120,18 @@ class EventRequest extends Model
 
     /**
      * Accesseur pour le prix du billet, convertissant les centimes en décimal.
+     *
+     * @return Attribute<string|null, mixed>
      */
     protected function ticketPrice(): Attribute
     {
-        return $this->moneyAttribute('ticket_price_cents');
+        return $this->moneyCast('ticket_price_cents');
     }
 
     /**
      * Définit la relation pour le client ayant fait la demande.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -136,6 +140,8 @@ class EventRequest extends Model
 
     /**
      * Définit la relation pour l'administrateur ayant examiné la demande.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function reviewer(): BelongsTo
     {
@@ -144,6 +150,8 @@ class EventRequest extends Model
 
     /**
      * Définit la relation pour l'événement résultant si approuvé.
+     *
+     * @return HasOne<Event, $this>
      */
     public function event(): HasOne
     {

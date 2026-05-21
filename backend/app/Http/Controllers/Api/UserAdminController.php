@@ -64,7 +64,9 @@ class UserAdminController extends ApiController
      */
     public function store(StoreUserRequest $request)
     {
-        $user = $this->users->create($request->validated());
+        /** @var array{name: string, email: string, password: string, role: string} $data */
+        $data = $request->validated();
+        $user = $this->users->create($data);
 
         return response()->json($user, 201);
     }

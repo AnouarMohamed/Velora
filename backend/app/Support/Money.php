@@ -39,6 +39,10 @@ final class Money
             return (int) round($amount * 100);
         }
 
+        if (! is_scalar($amount)) {
+            throw new InvalidArgumentException('Invalid money amount.');
+        }
+
         $value = trim((string) $amount);
 
         if (! preg_match('/^-?\d+(\.\d+)?$/', $value)) {
@@ -71,7 +75,7 @@ final class Money
      */
     public static function fromCents(mixed $cents): string
     {
-        $cents = (int) ($cents ?? 0);
+        $cents = is_scalar($cents) ? (int) $cents : 0;
         $prefix = $cents < 0 ? '-' : '';
         $absolute = abs($cents);
 

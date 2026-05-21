@@ -19,6 +19,8 @@ class AttachRequestId
         Log::withContext(['request_id' => $requestId]);
 
         $response = $next($request);
+        abort_unless($response instanceof Response, 500);
+
         $response->headers->set(self::HEADER, $requestId);
 
         return $response;

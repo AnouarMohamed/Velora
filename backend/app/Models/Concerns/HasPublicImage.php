@@ -21,7 +21,7 @@ trait HasPublicImage
     {
         $path = $this->attributes['image_path'] ?? null;
 
-        if (! $path) {
+        if (! is_string($path) || $path === '') {
             return null;
         }
 

@@ -33,7 +33,9 @@ class EventRequestImageStorage
     {
         // Cas 1 : Téléchargement de fichier Laravel standard
         if ($image?->isValid()) {
-            return $image->store('event-requests', 'public');
+            $path = $image->store('event-requests', 'public');
+
+            return is_string($path) ? $path : null;
         }
 
         // Cas 2 : Données base64 (utilisées lors de l'envoi de charges utiles JSON)

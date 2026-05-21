@@ -70,6 +70,8 @@ class EventActivity extends Model
 
     /**
      * Définit la relation pour l'événement parent.
+     *
+     * @return BelongsTo<Event, $this>
      */
     public function event(): BelongsTo
     {

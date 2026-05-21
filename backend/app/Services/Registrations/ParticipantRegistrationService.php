@@ -8,6 +8,7 @@ use App\Models\Registration;
 use App\Models\User;
 use App\Services\RegistrationService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 
 /**
  * Service gérant les opérations d'inscription du point de vue du participant.
@@ -89,6 +90,7 @@ class ParticipantRegistrationService
      * Liste toutes les inscriptions d'un participant, éventuellement filtrées par statut de paiement.
      *
      * @param  string|null  $paymentStatus  'paid' ou 'pending'.
+     * @return LengthAwarePaginator<int, Registration>
      */
     public function listForParticipant(User $participant, ?string $paymentStatus): LengthAwarePaginator
     {
@@ -126,12 +128,12 @@ class ParticipantRegistrationService
         $user = $registration->user;
 
         return new RegistrationTicket(
-            'billet-'.$registration->getKey().'.json',
+            'billet-'.$this->stringValue($registration->getKey()).'.json',
             [
                 'ticket' => $registration->getAttribute('ticket_code'),
                 'event' => $event?->getAttribute('title'),
                 'participant' => $user?->getAttribute('name'),
-                'starts_at' => $event?->getAttribute('start_at')?->toIso8601String(),
+                'starts_at' => $this->isoDate($event?->getAttribute('start_at')),
                 'location' => $event?->getAttribute('location'),
             ],
         );
@@ -140,13 +142,13 @@ class ParticipantRegistrationService
     /**
      * Retourne les relations à charger avec impatience pour une inscription.
      *
-     * @return array<string, mixed>
+     * @return list<string>
      */
     private function registrationEventWith(): array
     {
         return [
-            'event' => fn ($q) => $q->select($this->registrationEventSelect()),
-            'event.eventRequest' => fn ($q) => $q->select('id', 'image_path'),
+            'event:'.implode(',', $this->registrationEventSelect()),
+            'event.eventRequest:id,image_path',
         ];
     }
 
@@ -181,7 +183,7 @@ class ParticipantRegistrationService
     {
         $this->ensureParticipant($participant);
 
-        if ((string) $registration->getAttribute('user_id') !== (string) $participant->getKey()) {
+        if ($this->stringValue($registration->getAttribute('user_id')) !== $this->stringValue($participant->getKey())) {
             throw new RegistrationException('Accès refusé pour ce rôle.', 403);
         }
     }
@@ -196,5 +198,15 @@ class ParticipantRegistrationService
         if ($user->getAttribute('role') !== User::ROLE_PARTICIPANT) {
             throw new RegistrationException('Accès refusé pour ce rôle.', 403);
         }
+    }
+
+    private function isoDate(mixed $value): ?string
+    {
+        return $value instanceof Carbon ? $value->toIso8601String() : null;
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 }

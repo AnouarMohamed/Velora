@@ -17,7 +17,7 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property string $type Type de notification pour la catégorisation
  * @property string $title Titre de la notification
  * @property string $message Contenu détaillé de la notification
- * @property array|null $data Métadonnées supplémentaires associées à la notification
+ * @property array<string, mixed>|null $data Métadonnées supplémentaires associées à la notification
  * @property Carbon|null $read_at Horodatage du moment où la notification a été lue
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -68,6 +68,8 @@ class AppNotification extends Model
 
     /**
      * Définit la relation pour l'utilisateur destinataire.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {

@@ -21,11 +21,12 @@ trait StoresMoneyAsCents
      * - set: convert decimal input to integer cents.
      *
      * @param  string  $centsColumn  The name of the database column storing cents
-     * @return Attribute<mixed, mixed>
+     * @return Attribute<string|null, mixed>
      */
-    protected function moneyAttribute(string $centsColumn)
+    protected function moneyCast(string $centsColumn)
     {
-        return Attribute::make(
+        /** @var Attribute<string|null, mixed> $attribute */
+        $attribute = Attribute::make(
             get: function (mixed $value, array $attributes) use ($centsColumn): ?string {
                 if (array_key_exists($centsColumn, $attributes)) {
                     return Money::fromCents($attributes[$centsColumn]);
@@ -39,5 +40,7 @@ trait StoresMoneyAsCents
             },
             set: fn (mixed $value): array => [$centsColumn => Money::toCents($value)],
         );
+
+        return $attribute;
     }
 }

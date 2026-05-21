@@ -39,10 +39,10 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property-read EventRequest|null $eventRequest Demande d'origine pour cet événement
  * @property-read User|null $organizer Organisateur assigné
  * @property-read User|null $creator Utilisateur ayant créé l'enregistrement
- * @property-read Collection|EventTask[] $tasks Tâches de planification associées
- * @property-read Collection|EventActivity[] $activities Activités d'événement associées
- * @property-read Collection|Registration[] $registrations Inscriptions des participants
- * @property-read Collection|Feedback[] $feedbacks Commentaires des participants
+ * @property-read Collection<int, EventTask> $tasks Tâches de planification associées
+ * @property-read Collection<int, EventActivity> $activities Activités d'événement associées
+ * @property-read Collection<int, Registration> $registrations Inscriptions des participants
+ * @property-read Collection<int, Feedback> $feedbacks Commentaires des participants
  */
 class Event extends Model
 {
@@ -125,10 +125,12 @@ class Event extends Model
 
     /**
      * Accesseur pour le prix du billet, convertissant les centimes en décimal.
+     *
+     * @return Attribute<string|null, mixed>
      */
     protected function ticketPrice(): Attribute
     {
-        return $this->moneyAttribute('ticket_price_cents');
+        return $this->moneyCast('ticket_price_cents');
     }
 
     /**
@@ -136,8 +138,9 @@ class Event extends Model
      */
     public function getImageUrlAttribute(): ?string
     {
-        if (! empty($this->attributes['image_path'])) {
-            return '/storage/'.ltrim(str_replace('\\', '/', $this->attributes['image_path']), '/');
+        $path = $this->attributes['image_path'] ?? null;
+        if (is_string($path) && $path !== '') {
+            return '/storage/'.ltrim(str_replace('\\', '/', $path), '/');
         }
 
         if ($this->relationLoaded('eventRequest') && $this->eventRequest?->image_path) {
@@ -149,6 +152,8 @@ class Event extends Model
 
     /**
      * Récupère la demande d'événement d'origine.
+     *
+     * @return BelongsTo<EventRequest, $this>
      */
     public function eventRequest(): BelongsTo
     {
@@ -157,6 +162,8 @@ class Event extends Model
 
     /**
      * Récupère l'organisateur assigné.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function organizer(): BelongsTo
     {
@@ -165,6 +172,8 @@ class Event extends Model
 
     /**
      * Récupère l'utilisateur ayant créé l'enregistrement de l'événement.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function creator(): BelongsTo
     {
@@ -173,6 +182,8 @@ class Event extends Model
 
     /**
      * Récupère les tâches de planification associées.
+     *
+     * @return HasMany<EventTask, $this>
      */
     public function tasks(): HasMany
     {
@@ -181,6 +192,8 @@ class Event extends Model
 
     /**
      * Récupère les activités d'événement associées.
+     *
+     * @return HasMany<EventActivity, $this>
      */
     public function activities(): HasMany
     {
@@ -189,6 +202,8 @@ class Event extends Model
 
     /**
      * Récupère les inscriptions des participants.
+     *
+     * @return HasMany<Registration, $this>
      */
     public function registrations(): HasMany
     {
@@ -197,6 +212,8 @@ class Event extends Model
 
     /**
      * Récupère les commentaires des participants.
+     *
+     * @return HasMany<Feedback, $this>
      */
     public function feedbacks(): HasMany
     {
@@ -229,10 +246,10 @@ class Event extends Model
     /**
      * Portée (scope) d'une requête pour inclure uniquement les événements qui ne sont pas encore terminés.
      *
-     * @param  Builder  $query
-     * @return Builder
+     * @param  Builder<Event>  $query
+     * @return Builder<Event>
      */
-    public function scopeNotFinished($query)
+    public function scopeNotFinished(Builder $query): Builder
     {
         return $query->where(function ($q) {
             $q->where('end_at', '>=', now())
@@ -245,10 +262,10 @@ class Event extends Model
     /**
      * Portée (scope) d'une requête pour inclure uniquement les événements déjà terminés.
      *
-     * @param  Builder  $query
-     * @return Builder
+     * @param  Builder<Event>  $query
+     * @return Builder<Event>
      */
-    public function scopeFinished($query)
+    public function scopeFinished(Builder $query): Builder
     {
         return $query->where(function ($q) {
             $q->where('end_at', '<', now())

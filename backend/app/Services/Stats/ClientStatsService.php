@@ -42,7 +42,7 @@ class ClientStatsService
     {
         $this->ensureClient($client);
 
-        $email = (string) $client->getAttribute('email');
+        $email = $this->stringValue($client->getAttribute('email'));
         $eventIds = $this->eventIdsFor($email);
         $requests = $this->requestsFor($email);
         $blockReason = $this->eventRequestEligibility->blockingReasonFor($client);
@@ -64,11 +64,16 @@ class ClientStatsService
      */
     private function eventIdsFor(string $email): array
     {
-        return Event::query()
+        $ids = Event::query()
             ->whereHas('eventRequest', fn ($query) => $query->where('contact_email', $email))
             ->pluck('id')
+            ->filter(fn (mixed $id): bool => is_scalar($id))
             ->map(fn (mixed $id): string => (string) $id)
+            ->values()
             ->all();
+
+        /** @var list<string> $ids */
+        return $ids;
     }
 
     /**
@@ -80,9 +85,7 @@ class ClientStatsService
     {
         $requests = EventRequest::query()
             ->where('contact_email', $email)
-            ->with([
-                'event' => fn ($query) => $query->select('id', 'title', 'status', 'event_request_id', 'ticket_price_cents'),
-            ])
+            ->with('event:id,title,status,event_request_id,ticket_price_cents')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -123,7 +126,13 @@ class ClientStatsService
 
         $this->registrationStats->attachCount($events, 'tickets_count', 'paid');
 
-        return $events->map(fn (Event $event): array => $this->formatEvent($event))->all();
+        $formatted = $events
+            ->map(fn (Event $event): array => $this->formatEvent($event))
+            ->values()
+            ->all();
+
+        /** @var list<array<string, mixed>> $formatted */
+        return $formatted;
     }
 
     /**
@@ -141,7 +150,13 @@ class ClientStatsService
 
         $this->registrationStats->attachCount($events, 'tickets_count', 'paid');
 
-        return $events->map(fn (Event $event): array => $this->formatEvent($event))->all();
+        $formatted = $events
+            ->map(fn (Event $event): array => $this->formatEvent($event))
+            ->values()
+            ->all();
+
+        /** @var list<array<string, mixed>> $formatted */
+        return $formatted;
     }
 
     /**
@@ -177,8 +192,8 @@ class ClientStatsService
             'end_at' => $event->getAttribute('end_at'),
             'registered_count' => $event->getAttribute('registered_count'),
             'capacity' => $event->getAttribute('capacity'),
-            'tickets_count' => (int) $event->getAttribute('tickets_count'),
-            'ticket_price' => (float) $event->getAttribute('ticket_price'),
+            'tickets_count' => $this->intValue($event->getAttribute('tickets_count')),
+            'ticket_price' => $this->floatValue($event->getAttribute('ticket_price')),
             'organizer' => $event->relationLoaded('organizer') ? $event->getRelation('organizer') : null,
         ];
     }
@@ -190,10 +205,11 @@ class ClientStatsService
      */
     private function formatRequest(EventRequest $request): array
     {
+        /** @var array<string, mixed> $data */
         $data = $request->toArray();
         $event = $request->relationLoaded('event') ? $request->getRelation('event') : null;
         $data['registrations_count'] = $event instanceof Event
-            ? (int) $event->getAttribute('registrations_count')
+            ? $this->intValue($event->getAttribute('registrations_count'))
             : 0;
 
         return $data;
@@ -222,11 +238,14 @@ class ClientStatsService
      */
     private function formatRequestsWithStatus(EloquentCollection $requests, string $status): array
     {
-        return $requests
+        $formatted = $requests
             ->where('status', $status)
             ->map(fn (EventRequest $request): array => $this->formatRequest($request))
             ->values()
             ->all();
+
+        /** @var list<array<string, mixed>> $formatted */
+        return $formatted;
     }
 
     /**
@@ -239,5 +258,20 @@ class ClientStatsService
         if ($user->getAttribute('role') !== User::ROLE_CLIENT) {
             throw new StatsException('Accès refusé pour ce rôle.');
         }
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function intValue(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    private function floatValue(mixed $value): float
+    {
+        return is_numeric($value) ? (float) $value : 0.0;
     }
 }

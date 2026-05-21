@@ -28,9 +28,9 @@ use MongoDB\Laravel\Auth\User as Authenticatable;
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property-read Collection|Event[] $organizedEvents Événements dont cet utilisateur est l'organisateur
- * @property-read Collection|Registration[] $registrations Inscriptions aux événements effectuées par cet utilisateur
- * @property-read Collection|AppNotification[] $appNotifications Notifications envoyées à cet utilisateur
+ * @property-read Collection<int, Event> $organizedEvents Événements dont cet utilisateur est l'organisateur
+ * @property-read Collection<int, Registration> $registrations Inscriptions aux événements effectuées par cet utilisateur
+ * @property-read Collection<int, AppNotification> $appNotifications Notifications envoyées à cet utilisateur
  */
 #[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
@@ -105,9 +105,9 @@ class User extends Authenticatable
     /**
      * Définit la relation pour les événements organisés par cet utilisateur.
      *
-     * @return HasMany
+     * @return HasMany<Event, $this>
      */
-    public function organizedEvents()
+    public function organizedEvents(): HasMany
     {
         return $this->hasMany(Event::class, 'organizer_id');
     }
@@ -115,9 +115,9 @@ class User extends Authenticatable
     /**
      * Définit la relation pour les inscriptions effectuées par cet utilisateur.
      *
-     * @return HasMany
+     * @return HasMany<Registration, $this>
      */
-    public function registrations()
+    public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);
     }
@@ -125,9 +125,9 @@ class User extends Authenticatable
     /**
      * Définit la relation pour les notifications dans l'application reçues par cet utilisateur.
      *
-     * @return HasMany
+     * @return HasMany<AppNotification, $this>
      */
-    public function appNotifications()
+    public function appNotifications(): HasMany
     {
         return $this->hasMany(AppNotification::class);
     }

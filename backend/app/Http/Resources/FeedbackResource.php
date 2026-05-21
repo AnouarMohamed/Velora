@@ -33,11 +33,12 @@ class FeedbackResource extends JsonResource
         // Extraire en toute sécurité la relation utilisateur si elle a été chargée en amont
         $user = $feedback->relationLoaded('user') ? $feedback->getRelation('user') : null;
         $user = $user instanceof User ? $user : null;
+        $rating = $feedback->getAttribute('rating');
 
         return [
             'id' => $feedback->getKey(),
             'event_id' => $feedback->getAttribute('event_id'),
-            'rating' => (int) $feedback->getAttribute('rating'),
+            'rating' => is_numeric($rating) ? (int) $rating : 0,
             'comment' => $feedback->getAttribute('comment'),
             'status' => $feedback->getAttribute('status'),
             'created_at' => $feedback->getAttribute('created_at'),

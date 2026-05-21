@@ -61,16 +61,18 @@ class Feedback extends Model
     /**
      * Portée (scope) d'une requête pour inclure uniquement les commentaires approuvés.
      *
-     * @param  Builder  $query
-     * @return Builder
+     * @param  Builder<Feedback>  $query
+     * @return Builder<Feedback>
      */
-    public function scopeApproved($query)
+    public function scopeApproved(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_APPROVED);
     }
 
     /**
      * Définit la relation pour l'événement associé.
+     *
+     * @return BelongsTo<Event, $this>
      */
     public function event(): BelongsTo
     {
@@ -79,6 +81,8 @@ class Feedback extends Model
 
     /**
      * Définit la relation pour le participant ayant fourni le commentaire.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {

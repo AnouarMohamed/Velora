@@ -216,7 +216,7 @@ class FeedbackService
         $eventRequest = $event->getRelation('eventRequest');
 
         return $eventRequest instanceof EventRequest
-            && strcasecmp($eventRequest->getAttribute('contact_email'), $viewer->getAttribute('email')) === 0;
+            && strcasecmp($this->stringValue($eventRequest->getAttribute('contact_email')), $this->stringValue($viewer->getAttribute('email'))) === 0;
     }
 
     /**
@@ -228,5 +228,10 @@ class FeedbackService
             ->where('user_id', $participant->id)
             ->where('payment_status', 'paid')
             ->exists();
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 }

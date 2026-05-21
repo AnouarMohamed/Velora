@@ -33,7 +33,7 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property-read Event|null $event Événement associé à cette inscription
  * @property-read User|null $user Participant qui s'est inscrit
  * @property-read Payment|null $payment L'enregistrement de paiement principal
- * @property-read Collection|Payment[] $payments Tous les enregistrements de paiement associés à cette inscription
+ * @property-read Collection<int, Payment> $payments Tous les enregistrements de paiement associés à cette inscription
  */
 class Registration extends Model
 {
@@ -100,14 +100,18 @@ class Registration extends Model
 
     /**
      * Accesseur pour le montant de l'inscription, convertissant les centimes en décimal.
+     *
+     * @return Attribute<string|null, mixed>
      */
     protected function amount(): Attribute
     {
-        return $this->moneyAttribute('amount_cents');
+        return $this->moneyCast('amount_cents');
     }
 
     /**
      * Définit la relation pour l'événement associé.
+     *
+     * @return BelongsTo<Event, $this>
      */
     public function event(): BelongsTo
     {
@@ -116,6 +120,8 @@ class Registration extends Model
 
     /**
      * Définit la relation pour le participant inscrit.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -124,6 +130,8 @@ class Registration extends Model
 
     /**
      * Définit la relation pour l'enregistrement de paiement principal.
+     *
+     * @return HasOne<Payment, $this>
      */
     public function payment(): HasOne
     {
@@ -132,6 +140,8 @@ class Registration extends Model
 
     /**
      * Définit la relation pour tous les enregistrements de paiement associés.
+     *
+     * @return HasMany<Payment, $this>
      */
     public function payments(): HasMany
     {
