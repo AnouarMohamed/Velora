@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\FanOutPublishedEventNotifications;
+use App\Models\AppNotification;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\RefreshMongoDatabase;
 use Tests\TestCase;
@@ -30,16 +33,55 @@ class EventManagementFlowTest extends TestCase
 
     public function test_admin_can_create_published_event(): void
     {
+        Queue::fake();
+
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $participant = User::factory()->create(['role' => User::ROLE_PARTICIPANT]);
 
         Sanctum::actingAs($admin);
 
-        $this->postJson('/api/organizer/events', $this->eventPayload([
+        $eventId = $this->postJson('/api/organizer/events', $this->eventPayload([
             'status' => Event::STATUS_PUBLISHED,
         ]))
             ->assertCreated()
             ->assertJsonPath('status', Event::STATUS_PUBLISHED)
-            ->assertJsonPath('organizer_id', $admin->id);
+            ->assertJsonPath('organizer_id', $admin->id)
+            ->json('id');
+
+        Queue::assertPushed(
+            FanOutPublishedEventNotifications::class,
+            fn (FanOutPublishedEventNotifications $job): bool => $job->eventId === $eventId,
+        );
+
+        $this->assertFalse(AppNotification::query()
+            ->where('user_id', $participant->id)
+            ->where('type', 'participant_new_event')
+            ->exists());
+    }
+
+    public function test_published_event_fan_out_job_creates_participant_notifications_in_chunks(): void
+    {
+        $event = $this->eventFor(User::factory()->create(['role' => User::ROLE_ADMIN]), [
+            'status' => Event::STATUS_PUBLISHED,
+        ]);
+        $participant = User::factory()->create(['role' => User::ROLE_PARTICIPANT]);
+        $organizer = User::factory()->create(['role' => User::ROLE_ORGANIZER]);
+
+        (new FanOutPublishedEventNotifications(
+            (string) $event->id,
+            'Nouvel événement',
+            'Un événement est disponible.',
+            ['event_id' => $event->id],
+        ))->handle();
+
+        $this->assertTrue(AppNotification::query()
+            ->where('user_id', $participant->id)
+            ->where('type', 'participant_new_event')
+            ->exists());
+        $this->assertFalse(AppNotification::query()
+            ->where('user_id', $organizer->id)
+            ->where('type', 'participant_new_event')
+            ->exists());
     }
 
     public function test_organizer_cannot_publish_event_directly_on_update(): void

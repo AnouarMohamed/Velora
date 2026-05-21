@@ -9,6 +9,7 @@ servers:
 security:
   - bearerAuth: []
 tags:
+  - name: Health
   - name: Auth
   - name: Notifications
   - name: Events
@@ -21,7 +22,7 @@ tags:
 paths:
   /health:
     get:
-      tags: [Auth]
+      tags: [Health]
       summary: Vérification de santé (health check)
       security: []
       responses:

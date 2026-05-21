@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\RegistrationStatsService;
 use App\Support\Money;
 use DateTimeInterface;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use MongoDB\Laravel\Connection as MongoConnection;
 
@@ -21,6 +22,10 @@ use MongoDB\Laravel\Connection as MongoConnection;
  */
 class AdminStatsService
 {
+    private const CACHE_KEY = 'admin_stats_payload';
+
+    private const CACHE_SECONDS = 60;
+
     /**
      * @var array<string, string>
      */
@@ -39,6 +44,18 @@ class AdminStatsService
      * @return array<string, mixed>
      */
     public function payload(): array
+    {
+        return Cache::remember(
+            self::CACHE_KEY,
+            self::CACHE_SECONDS,
+            fn (): array => $this->freshPayload(),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function freshPayload(): array
     {
         return [
             'users_total' => User::count(),
@@ -76,8 +93,9 @@ class AdminStatsService
         $counts = [];
         foreach ($results as $result) {
             $role = data_get($result, '_id');
-            $key = $this->roleResponseKey((string) ($role ?? ''));
-            $counts[$key] = ($counts[$key] ?? 0) + (int) data_get($result, 'count', 0);
+            $key = $this->roleResponseKey(is_scalar($role) ? (string) $role : '');
+            $count = data_get($result, 'count', 0);
+            $counts[$key] = ($counts[$key] ?? 0) + (is_int($count) ? $count : 0);
         }
 
         return $counts;
@@ -106,11 +124,14 @@ class AdminStatsService
 
         $this->registrationStats->attachCount($events, 'tickets_count', 'paid');
 
-        return $events
+        $pastEvents = $events
             ->sort(fn (Event $a, Event $b): int => $this->comparePastEvents($a, $b))
             ->values()
             ->map(fn (Event $event): array => $this->formatPastEvent($event))
+            ->values()
             ->all();
+
+        return array_values($pastEvents);
     }
 
     /**
@@ -137,6 +158,10 @@ class AdminStatsService
             return $value->getTimestamp();
         }
 
+        if (! is_scalar($value)) {
+            return 0;
+        }
+
         $timestamp = strtotime((string) $value);
 
         return $timestamp === false ? 0 : $timestamp;
@@ -153,22 +178,45 @@ class AdminStatsService
         $organizer = $event->relationLoaded('organizer') ? $event->getRelation('organizer') : null;
 
         return [
-            'id' => $event->getKey(),
+            'id' => $this->stringValue($event->getKey()),
             'title' => $event->getAttribute('title'),
             'description' => $event->getAttribute('description'),
             'image_url' => $event->getAttribute('image_url'),
             'location' => $event->getAttribute('location'),
-            'start_at' => $event->getAttribute('start_at'),
-            'end_at' => $event->getAttribute('end_at'),
-            'ticket_price' => (float) $event->getAttribute('ticket_price'),
+            'start_at' => $this->dateValue($event->getAttribute('start_at')),
+            'end_at' => $this->dateValue($event->getAttribute('end_at')),
+            'ticket_price' => $this->floatValue($event->getAttribute('ticket_price')),
             'registered_count' => $event->getAttribute('registered_count'),
             'capacity' => $event->getAttribute('capacity'),
-            'tickets_count' => (int) $event->getAttribute('tickets_count'),
-            'organizer' => $organizer,
+            'tickets_count' => $this->intValue($event->getAttribute('tickets_count')),
+            'organizer' => $organizer instanceof User ? [
+                'id' => $this->stringValue($organizer->getKey()),
+                'name' => $organizer->getAttribute('name'),
+            ] : null,
             'event_request' => $eventRequest instanceof EventRequest ? [
                 'contact_name' => $eventRequest->getAttribute('contact_name'),
                 'contact_email' => $eventRequest->getAttribute('contact_email'),
             ] : null,
         ];
+    }
+
+    private function dateValue(mixed $value): mixed
+    {
+        return $value instanceof DateTimeInterface ? $value->format(DateTimeInterface::ATOM) : $value;
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function intValue(mixed $value): int
+    {
+        return is_int($value) ? $value : 0;
+    }
+
+    private function floatValue(mixed $value): float
+    {
+        return is_int($value) || is_float($value) || is_string($value) ? (float) $value : 0.0;
     }
 }

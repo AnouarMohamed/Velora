@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Event;
 use App\Models\Registration;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -26,12 +27,21 @@ class RegistrationStatsService
     public function countsByEvent(iterable $eventIds, ?string $paymentStatus = null): array
     {
         // Normalise les IDs d'événements en un tableau propre de chaînes de caractères.
-        $eventIds = collect($eventIds)
-            ->filter()
-            ->map(fn (mixed $eventId): string => (string) $eventId)
-            ->unique()
-            ->values()
-            ->all();
+        $normalizedEventIds = [];
+        foreach ($eventIds as $eventId) {
+            if (! is_scalar($eventId)) {
+                continue;
+            }
+
+            $eventId = (string) $eventId;
+            if ($eventId === '') {
+                continue;
+            }
+
+            $normalizedEventIds[$eventId] = true;
+        }
+
+        $eventIds = array_keys($normalizedEventIds);
 
         if ($eventIds === []) {
             return [];
@@ -60,15 +70,15 @@ class RegistrationStatsService
         // Transforme le curseur MongoDB brut en un tableau associatif PHP.
         return collect(iterator_to_array($rows))
             ->mapWithKeys(fn (mixed $row): array => [
-                (string) data_get($row, '_id') => (int) data_get($row, 'count', 0),
-            ])
+                $this->stringValue(data_get($row, '_id')) => $this->intValue(data_get($row, 'count', 0)),
+            ])->filter(fn (int $count, string $eventId): bool => $eventId !== '')
             ->all();
     }
 
     /**
      * Attache les nombres d'inscriptions à une collection de modèles d'événements en tant qu'attribut dynamique.
      *
-     * @param  Collection<int, mixed>  $events  La collection de modèles Event à hydrater.
+     * @param  Collection<int, Event>  $events  La collection de modèles Event à hydrater.
      * @param  string  $attribute  Le nom de l'attribut virtuel à définir (ex: 'paid_registrations_count').
      * @param  string|null  $paymentStatus  Filtre de statut optionnel pour les comptages.
      */
@@ -78,8 +88,18 @@ class RegistrationStatsService
         $counts = $this->countsByEvent($events->pluck('id'), $paymentStatus);
 
         // Injecte les comptages dans chaque instance d'événement.
-        $events->each(function (mixed $event) use ($attribute, $counts): void {
-            $event->setAttribute($attribute, $counts[(string) $event->id] ?? 0);
+        $events->each(function (Event $event) use ($attribute, $counts): void {
+            $event->setAttribute($attribute, $counts[$this->stringValue($event->id)] ?? 0);
         });
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function intValue(mixed $value): int
+    {
+        return is_int($value) ? $value : 0;
     }
 }

@@ -15,6 +15,7 @@ class ApiMiddlewareTest extends TestCase
             ->assertHeader('Referrer-Policy', 'no-referrer')
             ->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()')
             ->assertHeader('X-Permitted-Cross-Domain-Policies', 'none')
+            ->assertHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
             ->assertHeader('X-Request-Id');
     }
 
@@ -46,7 +47,8 @@ class ApiMiddlewareTest extends TestCase
             ->assertHeader('X-Frame-Options', 'DENY')
             ->assertHeader('Referrer-Policy', 'no-referrer')
             ->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()')
-            ->assertHeader('X-Permitted-Cross-Domain-Policies', 'none');
+            ->assertHeader('X-Permitted-Cross-Domain-Policies', 'none')
+            ->assertHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
     }
 
     public function test_api_errors_return_json_without_accept_header(): void

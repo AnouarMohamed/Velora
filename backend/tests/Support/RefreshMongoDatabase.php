@@ -2,6 +2,7 @@
 
 namespace Tests\Support;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 trait RefreshMongoDatabase
@@ -29,6 +30,8 @@ trait RefreshMongoDatabase
 
     protected function refreshMongoDatabase(): void
     {
+        Cache::flush();
+
         $database = DB::connection('mongodb')->getDatabase();
 
         if (! MongoDatabaseState::$migrated) {

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\FanOutPublishedEventNotifications;
 use App\Models\AppNotification;
 use App\Models\Event;
 use App\Models\EventRequest;
@@ -56,17 +57,6 @@ class NotificationService
     public static function adminIds(): array
     {
         return User::query()->where('role', User::ROLE_ADMIN)->pluck('id')->all();
-    }
-
-    /**
-     * Récupère tous les IDs d'utilisateurs ayant le rôle de Participant.
-     * Utilisé pour diffuser de nouveaux événements ou des annonces générales.
-     *
-     * @return list<string>
-     */
-    public static function participantIds(): array
-    {
-        return User::query()->where('role', User::ROLE_PARTICIPANT)->pluck('id')->all();
     }
 
     /**
@@ -277,10 +267,9 @@ class NotificationService
      */
     public static function eventPublished(Event $event): void
     {
-        // Notification de masse à tous les participants potentiels.
-        self::send(
-            self::participantIds(),
-            'participant_new_event',
+        // La diffusion aux participants peut toucher des dizaines de milliers de comptes ; elle sort donc du cycle HTTP.
+        FanOutPublishedEventNotifications::dispatch(
+            (string) $event->getKey(),
             'Nouvel événement',
             sprintf('« %s » est disponible à l’inscription.', $event->title),
             ['event_id' => $event->id, 'link' => '/events/'.$event->id],

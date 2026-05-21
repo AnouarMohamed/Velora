@@ -1,10 +1,10 @@
 includes:
     - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
 
 parameters:
 
     paths:
         - app/
 
-    # Level 5 is a good start for a strong pipeline
-    level: 5
+    level: max

@@ -96,6 +96,13 @@ class HealthCheckService
     private function down(Throwable $exception): array
     {
         // Inclure l'erreur de dépendance dans les réponses de santé en local/dev pour accélérer le dépannage.
+        if (! (bool) config('app.debug')) {
+            return [
+                'status' => 'down',
+                'error' => 'Dépendance indisponible.',
+            ];
+        }
+
         return [
             'status' => 'down',
             'error' => $exception->getMessage(),

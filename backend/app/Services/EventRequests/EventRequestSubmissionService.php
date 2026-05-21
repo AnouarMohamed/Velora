@@ -37,7 +37,7 @@ class EventRequestSubmissionService
     {
         // Vérification de sécurité : seuls les clients peuvent demander des services d'organisation d'événements.
         if ($client->getAttribute('role') !== User::ROLE_CLIENT) {
-            throw new EventRequestException('This action is unauthorized.', 403);
+            throw new EventRequestException('Cette action n\'est pas autorisée.', 403);
         }
 
         // Règle métier : un client ne peut avoir qu'une seule demande ou un seul événement actif à la fois.
