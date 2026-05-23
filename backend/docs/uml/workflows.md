@@ -8,25 +8,25 @@ Mermaid est utilisé pour que les diagrammes restent versionnables dans Git. La 
 
 ```mermaid
 flowchart LR
-    Admin[Admin]
-    Organizer[Organisateur]
-    Participant[Participant]
-    Client[Client]
+    Admin["Admin"]
+    Organizer["Organisateur"]
+    Participant["Participant"]
+    Client["Client"]
 
-    Auth((S'authentifier))
-    Browse((Parcourir les événements))
-    Notifications((Gérer les notifications))
-    ClientRequest((Demander un événement))
-    ReviewRequest((Réviser une demande d'événement))
-    ManageEvents((Gérer les événements))
-    PlanEvent((Gérer les tâches et activités))
-    RegisterEvent((S'inscrire à un événement))
-    PayTicket((Payer l'inscription))
-    Ticket((Télécharger le ticket))
-    Feedback((Soumettre un commentaire))
-    ModerateFeedback((Modérer les commentaires))
-    UserAdmin((Gérer les utilisateurs))
-    Stats((Voir les stats))
+    Auth(("S'authentifier"))
+    Browse(("Parcourir les événements"))
+    Notifications(("Gérer les notifications"))
+    ClientRequest(("Demander un événement"))
+    ReviewRequest(("Réviser une demande d'événement"))
+    ManageEvents(("Gérer les événements"))
+    PlanEvent(("Gérer les tâches et activités"))
+    RegisterEvent(("S'inscrire à un événement"))
+    PayTicket(("Payer l'inscription"))
+    Ticket(("Télécharger le ticket"))
+    Feedback(("Soumettre un commentaire"))
+    ModerateFeedback(("Modérer les commentaires"))
+    UserAdmin(("Gérer les utilisateurs"))
+    Stats(("Voir les stats"))
 
     Admin --> Auth
     Organizer --> Auth
@@ -70,7 +70,7 @@ sequenceDiagram
     participant User as Modèle User
     participant Token as PersonalAccessToken
 
-    Visitor->>API: POST /api/register
+    Visitor->>API: "POST /api/register"
     API->>Request: valide le nom, l'email, le mot de passe, le rôle
     Request-->>API: charge utile validée
     API->>Users: create(payload)
@@ -99,7 +99,7 @@ sequenceDiagram
     participant Token as PersonalAccessToken
     participant Protected as Route API protégée
 
-    User->>API: POST /api/login
+    User->>API: "POST /api/login"
     API->>Request: valide l'email et le mot de passe
     Request-->>API: identifiants
     API->>Auth: attempt(credentials)
@@ -128,7 +128,7 @@ sequenceDiagram
     participant API as AuthController
     participant Token as CurrentAccessToken
 
-    User->>API: POST /api/logout avec le jeton porteur
+    User->>API: "POST /api/logout avec le jeton porteur"
     API->>Token: supprime le jeton actuel
     Token-->>API: supprimé
     API-->>User: 200 { message }
@@ -148,12 +148,12 @@ flowchart TD
     B -- oui --> D[Dispatch Redis FanOutPublishedEventNotifications]
     D --> E[Le job parcourt les participants avec cursor et chunks de 500]
     E --> C
-    C --> F[L'utilisateur appelle GET /api/notifications]
+    C --> F["L'utilisateur appelle GET /api/notifications"]
     F --> G[NotificationInboxService agrège page, total et unread_count avec Mongo facet]
     G --> H[NotificationController renvoie data, unread_count et meta]
     H --> I{L'utilisateur marque les notifications comme lues ?}
     I -- une notification --> J["Route de lecture d'une notification POST"]
-    I -- toutes les notifications --> K[POST /api/notifications/read-all]
+    I -- toutes les notifications --> K["POST /api/notifications/read-all"]
     J --> L[Définit read_at]
     K --> L
     L --> M[Le nombre de messages non lus diminue]
@@ -170,7 +170,7 @@ Règles :
 
 ```mermaid
 flowchart TD
-    A[L'utilisateur authentifié demande /api/events/browse] --> B[PublicEventController lit EventIndexRequest]
+    A["L'utilisateur authentifié demande /api/events/browse"] --> B[PublicEventController lit EventIndexRequest]
     B --> C[EventListingService requête les événements publiés]
     C --> D[Applique la recherche optionnelle]
     D --> E[Ordonne et pagine]
@@ -210,7 +210,7 @@ sequenceDiagram
     participant Storage as EventImageStorage
     participant Event as Modèle Event
 
-    Organizer->>API: POST /api/organizer/events
+    Organizer->>API: "POST /api/organizer/events"
     API->>Request: valide la charge utile de l'événement
     Request-->>API: données validées
     API->>Service: create(actor, data)
@@ -238,7 +238,7 @@ sequenceDiagram
     participant Service as EventManagementService
     participant Event as Modèle Event
 
-    Admin->>API: POST /api/organizer/events
+    Admin->>API: "POST /api/organizer/events"
     API->>Request: valide la charge utile
     API->>Service: create(admin, data)
     alt le statut est publié
@@ -259,7 +259,7 @@ Règles :
 
 ```mermaid
 flowchart TD
-    A[L'acteur soumet un PATCH sur l'événement] --> B[UpdateEventRequest valide les données]
+    A["L'acteur soumet un PATCH sur l'événement"] --> B[UpdateEventRequest valide les données]
     B --> C{L'acteur est admin ou gestionnaire de l'événement ?}
     C -- non --> D[Erreur de domaine 403]
     C -- oui --> E{L'acteur est organisateur et demande la publication ?}
@@ -280,7 +280,7 @@ Règles :
 
 ```mermaid
 flowchart TD
-    A[Le gestionnaire soumet un changement de capacité] --> B[UpdateEventCapacityRequest valide la capacité]
+    A["Le gestionnaire soumet un changement de capacité"] --> B[UpdateEventCapacityRequest valide la capacité]
     B --> C[Charge le registered_count actuel]
     C --> D{nouvelle capacité >= registered_count ?}
     D -- non --> E[Erreur de domaine de capacité 422]
@@ -340,7 +340,7 @@ sequenceDiagram
     participant Event as Modèle Event
     participant User as Modèle User
 
-    Admin->>API: PATCH /api/admin/events/{event}/assign-organizer
+    Admin->>API: "PATCH /api/admin/events/{event}/assign-organizer"
     API->>Request: valide l'organizer_id
     Service->>User: vérifie que l'utilisateur est organisateur ou administrateur
     API->>Service: assignOrganizer(event, organizer)
@@ -366,7 +366,7 @@ sequenceDiagram
     participant Storage as EventRequestImageStorage
     participant RequestModel as EventRequest
 
-    Client->>API: POST /api/event-requests
+    Client->>API: "POST /api/event-requests"
     API->>Request: valide la charge utile
     Request-->>API: données validées
     API->>Eligibility: s'assure que le client peut soumettre
@@ -414,7 +414,7 @@ sequenceDiagram
     participant Event as Event
     participant Notify as NotificationService
 
-    Admin->>API: POST route de révision de demande d'événement admin avec decision=approved
+    Admin->>API: "POST route de révision de demande d'événement admin avec decision=approved"
     API->>Request: valide la décision
     API->>Service: approve(eventRequest, admin)
     Service->>Mongo: démarre la transaction
@@ -484,7 +484,7 @@ flowchart TD
     F --> I{ends_at avant starts_at ?}
     G --> I
     I -- oui --> J[Erreur de validation 422]
-    I -- no --> K[Enregistre l'activité]
+    I -- non --> K[Enregistre l'activité]
     H --> L[Supprime l'activité]
 ```
 
@@ -507,7 +507,7 @@ sequenceDiagram
     participant Payment as Payment
     participant Notify as NotificationService
 
-    P->>API: POST route d'inscription à l'événement
+    P->>API: "POST route d'inscription à l'événement"
     API->>Service: register(participant, event)
     Service->>Core: register(participant, event)
     Core->>Mongo: démarre la transaction
@@ -557,7 +557,7 @@ flowchart TD
     A[Le participant demande une inscription] --> B[Le service vérifie l'inscription existante événement/utilisateur]
     B --> C{Inscription existante trouvée ?}
     C -- oui --> D[Renvoie 422 avec l'inscription existante]
-    C -- no --> E[Crée l'inscription]
+    C -- non --> E[Crée l'inscription]
     E --> F{Conflit d'index unique Mongo ?}
     F -- non --> G[L'inscription réussit]
     F -- oui --> H[Traduit la clé en double en une erreur 422 conviviale]
@@ -581,7 +581,7 @@ sequenceDiagram
     participant Payment as Payment
     participant Notify as NotificationService
 
-    P->>API: POST route de paiement de l'inscription
+    P->>API: "POST route de paiement de l'inscription"
     API->>Service: pay(participant, registration)
     Service->>Core: pay(registration)
     Core->>Mongo: démarre la transaction
@@ -667,7 +667,7 @@ sequenceDiagram
     participant Feedback as Feedback
     participant Notify as NotificationService
 
-    P->>API: POST route de commentaire d'événement
+    P->>API: "POST route de commentaire d'événement"
     API->>Request: valide la note et le commentaire
     API->>Service: submit(participant, event, data)
     Service->>Registration: vérifie l'inscription payée
@@ -716,7 +716,7 @@ flowchart TD
     F --> G[Somme les centimes de paiement complétés]
     G --> H[Stocke le résultat 60 secondes]
     H --> I[Renvoie la charge utile du tableau de bord]
-    J[Mutation User/Event/EventRequest/Registration/Payment/Feedback] --> K[AdminStatsCacheObserver oublie le cache]
+    J["Mutation User/Event/EventRequest/Registration/Payment/Feedback"] --> K["AdminStatsCacheObserver oublie le cache"]
 ```
 
 Règles :
@@ -747,11 +747,11 @@ Règles :
 sequenceDiagram
     actor Admin
     participant API as UserAdminController
-    participant Request as FormRequest Utilisateur
+    participant Request as "FormRequest Utilisateur"
     participant Service as UserWriteService
     participant User as Modèle User
 
-    Admin->>API: GET/POST/PATCH/DELETE /api/admin/users
+    Admin->>API: "GET/POST/PATCH/DELETE /api/admin/users"
     API->>Request: valide le rôle, l'email, le mot de passe, les filtres
     API->>Service: crée/met à jour/supprime l'utilisateur
     alt auto-suppression demandée
@@ -774,7 +774,7 @@ Règles :
 
 ```mermaid
 flowchart TD
-    A[GET /api/health] --> B[Vérifie la connexion MongoDB]
+    A["GET /api/health"] --> B[Vérifie la connexion MongoDB]
     B --> C[Vérifie la connexion Redis]
     C --> D{Toutes les dépendances sont OK ?}
     D -- oui --> E[Statut 200 OK]
@@ -793,7 +793,7 @@ Règles :
 
 ```mermaid
 flowchart TD
-    A[La requête API entre dans Laravel] --> B[Middleware AttachRequestId]
+    A["La requête API entre dans Laravel"] --> B[Middleware AttachRequestId]
     B --> C[Middleware de rôle/auth si la route l'exige]
     C --> D[Contrôleur ou FormRequest]
     D --> E[Réponse générée]

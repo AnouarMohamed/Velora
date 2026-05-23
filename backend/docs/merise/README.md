@@ -12,24 +12,24 @@ L'implémentation est exclusivement MongoDB, donc le MLD utilise des collections
 
 ```mermaid
 erDiagram
-    USER ||--o{ PERSONAL_ACCESS_TOKEN : possède
-    USER ||--o{ EVENT_REQUEST : soumet
-    USER ||--o{ EVENT_REQUEST : révise
-    USER ||--o{ EVENT : crée
-    USER ||--o{ EVENT : organise
-    USER ||--o{ REGISTRATION : s'inscrit
-    USER ||--o{ FEEDBACK : écrit
-    USER ||--o{ APP_NOTIFICATION : reçoit
-    USER ||--o{ EVENT_TASK : peut_être_assigné
+    USER ||--o{ PERSONAL_ACCESS_TOKEN : "possède"
+    USER ||--o{ EVENT_REQUEST : "soumet"
+    USER ||--o{ EVENT_REQUEST : "révise"
+    USER ||--o{ EVENT : "crée"
+    USER ||--o{ EVENT : "organise"
+    USER ||--o{ REGISTRATION : "s'inscrit"
+    USER ||--o{ FEEDBACK : "écrit"
+    USER ||--o{ APP_NOTIFICATION : "reçoit"
+    USER ||--o{ EVENT_TASK : "peut être assigné"
 
-    EVENT_REQUEST ||--o| EVENT : devient
-    EVENT ||--o{ EVENT_TASK : contient
-    EVENT ||--o{ EVENT_ACTIVITY : planifie
-    EVENT ||--o{ REGISTRATION : reçoit
-    EVENT ||--o{ FEEDBACK : reçoit
+    EVENT_REQUEST ||--o| EVENT : "devient"
+    EVENT ||--o{ EVENT_TASK : "contient"
+    EVENT ||--o{ EVENT_ACTIVITY : "planifie"
+    EVENT ||--o{ REGISTRATION : "reçoit"
+    EVENT ||--o{ FEEDBACK : "reçoit"
 
-    REGISTRATION ||--o{ PAYMENT : a
-    REGISTRATION ||--o| FEEDBACK : autorise
+    REGISTRATION ||--o{ PAYMENT : "a"
+    REGISTRATION ||--o| FEEDBACK : "autorise"
 
     USER {
         ObjectId id
