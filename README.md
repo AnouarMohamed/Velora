@@ -3,6 +3,44 @@
 
 Application React + Laravel pour gerer les demandes d'evenements, les publications, les inscriptions, les paiements simules, les avis et les notifications.
 
+## Guide Pas à Pas (Baby Steps)
+
+Voici comment lancer l'application et commencer à l'utiliser en quelques secondes :
+
+### 1. Demarrer l'application
+Depuis la racine du projet, lancez tous les services en arrière-plan :
+```bash
+docker compose up -d --build
+```
+
+### 2. Charger les donnees de demonstration
+Une fois les conteneurs démarrés, initialisez la base de données MongoDB et injectez les données de démonstration :
+```bash
+docker compose exec backend php artisan migrate:fresh --seed --force
+```
+
+### 3. Ouvrir dans le navigateur
+* **Application (Frontend React)** : [http://127.0.0.1:5173](http://127.0.0.1:5173)
+* **API (Backend Laravel)** : [http://127.0.0.1:8000/api](http://127.0.0.1:8000/api)
+
+### 4. Comptes de demonstration disponibles
+Tous les comptes utilisent le mot de passe : `password`
+* **Organisateur** : `organisateur@demo.local`
+* **Administrateur** : `admin@demo.local`
+* **Participant** : `participant@demo.local`
+* **Client** : `client@demo.local`
+
+---
+
+> [!IMPORTANT]
+> **Note sur les tests automatises :**
+> L'exécution des tests du backend (`docker compose exec backend php artisan test`) va écraser la base de données. 
+> 
+> Si vous obtenez une erreur `422 (Unprocessable Content)` en essayant de vous connecter après avoir lancé les tests, restaurez simplement vos comptes de démo en exécutant :
+> ```bash
+> docker compose exec backend php artisan db:seed
+> ```
+
 ## Stack locale
 
 - `backend/` - Laravel 13 API REST, Sanctum, MongoDB
