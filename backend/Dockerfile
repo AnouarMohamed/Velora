@@ -1,31 +1,51 @@
-FROM php:8.4-cli-alpine3.20
+FROM php:8.3-fpm-alpine
 
+# Install system dependencies
 RUN apk add --no-cache \
-    git \
-    curl \
     bash \
-    zlib-dev \
-    libzip-dev \
+    curl \
+    libpng-dev \
     libxml2-dev \
-    openssl-dev \
-    g++ \
-    make \
-    autoconf \
-    pkgconf \
-    oniguruma-dev
-RUN apk upgrade --no-cache
+    zip \
+    unzip \
+    nginx \
+    libzip-dev \
+    oniguruma-dev \
+    linux-headers \
+    $PHPIZE_DEPS
 
-RUN docker-php-ext-install zip
-RUN pecl install mongodb redis && docker-php-ext-enable mongodb redis
+# Install PHP extensions
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Install MongoDB extension
+RUN pecl install mongodb && docker-php-ext-enable mongodb
 
+# Install Redis extension
+RUN pecl install redis && docker-php-ext-enable redis
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
 WORKDIR /var/www/html
 
-COPY entrypoint.sh /usr/local/bin/gestionev-backend-entrypoint
-RUN chmod +x /usr/local/bin/gestionev-backend-entrypoint
+# Copy application files
+COPY . .
 
-EXPOSE 8000
+# Install composer dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-ENTRYPOINT ["gestionev-backend-entrypoint"]
-CMD ["php", "-d", "upload_max_filesize=12M", "-d", "post_max_size=16M", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Setup permissions
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/http.d/default.conf
+
+# Expose port 8080
+EXPOSE 8080
+
+# Start script
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["entrypoint.sh"]

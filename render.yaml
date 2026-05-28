@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: velora-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_DEBUG
+        value: "false"
+      - key: DB_CONNECTION
+        value: mongodb
+      - key: DB_DSN
+        sync: false # I will fill this from MongoDB Atlas
+      - key: DB_DATABASE
+        value: velora
+      - key: SESSION_DRIVER
+        value: cookie # Use cookie for session if Redis is not available or too expensive to setup free
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+
+  - type: web
+    name: velora-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    plan: free
+    envVars:
+      - key: VITE_API_URL
+        value: https://velora-backend.onrender.com # Placeholder, will update after first deploy
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
