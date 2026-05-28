@@ -12,9 +12,7 @@ function EventSection({
   events,
   statusDisplay,
   organizers,
-  showAssignToMe,
   onAssign,
-  onAssignToMe,
   onDeleteClick,
   onManageCapacity,
   onApprovePublication,
@@ -35,7 +33,6 @@ function EventSection({
               statusDisplay={statusDisplay}
               organizers={organizers}
               onAssign={onAssign}
-              onAssignToMe={showAssignToMe ? onAssignToMe : undefined}
               onDeleteClick={onDeleteClick}
               onManageCapacity={onManageCapacity}
               onApprovePublication={onApprovePublication}
@@ -57,12 +54,26 @@ export function AdminEventsPage() {
   const load = async () => {
     const [ev, org] = await Promise.all([api.get('/admin/events'), api.get('/admin/organizers')]);
     setEvents(ev.data.data);
-    setOrganizers(org.data.filter((o) => o.role === 'organizer' || o.role === 'admin'));
+    
+    // Sort so current user is at the top and add (Moi) label
+    const allOrgs = org.data
+      .filter((o) => o.role === 'organizer' || o.role === 'admin')
+      .map((o) => ({
+        ...o,
+        name: o.id === user?.id ? `${o.name} (Moi)` : o.name,
+      }))
+      .sort((a, b) => {
+        if (a.id === user?.id) return -1;
+        if (b.id === user?.id) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+    setOrganizers(allOrgs);
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    if (user) load();
+  }, [user]);
 
   const { toAssign, assignedUpcoming, online } = useMemo(() => {
     const pending = events.filter((e) => !e.organizer_id);
@@ -75,14 +86,17 @@ export function AdminEventsPage() {
   }, [events]);
 
   const assign = async (eventId, organizerId) => {
-    await api.patch(`/admin/events/${eventId}/assign-organizer`, { organizer_id: organizerId });
-    load();
-  };
-
-  const assignToMe = async (eventId) => {
-    if (!user) return;
-    await api.patch(`/admin/events/${eventId}/assign-organizer`, { organizer_id: user.id });
-    navigate('/admin/my-events', { replace: true, state: { refreshAt: Date.now() } });
+    try {
+      await api.patch(`/admin/events/${eventId}/assign-organizer`, { organizer_id: organizerId });
+      if (organizerId === user?.id) {
+        navigate('/admin/my-events', { replace: true, state: { refreshAt: Date.now() } });
+      } else {
+        await load();
+      }
+    } catch (error) {
+      console.error('Assignment failed:', error);
+      alert('L’assignation a échoué. Veuillez réessayer.');
+    }
   };
 
   const manageCapacity = (ev) => {
@@ -115,9 +129,7 @@ export function AdminEventsPage() {
           events={toAssign}
           statusDisplay="assign"
           organizers={organizers}
-          showAssignToMe
           onAssign={assign}
-          onAssignToMe={assignToMe}
           onDeleteClick={setDeleteTarget}
         />
         <EventSection

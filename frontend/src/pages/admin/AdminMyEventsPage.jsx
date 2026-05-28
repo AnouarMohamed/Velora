@@ -57,7 +57,7 @@ export function AdminMyEventsPage() {
       ) : events.length === 0 ? (
         <div className="space-y-4">
           <p className="glass-panel rounded-xl border border-white/50 px-4 py-8 text-center text-stone-600">
-            Aucun événement pour le moment. Utilisez « À moi » sur Tous les événements, ou créez-en un
+            Aucun événement pour le moment. Assignez-en un depuis « Tous les événements », ou créez-en un
             nouveau.
           </p>
           <div className="flex justify-center">{createBtn}</div>

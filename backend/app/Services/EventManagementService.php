@@ -41,7 +41,6 @@ class EventManagementService
         $status = $this->statusForCreate($actor, $this->stringValue($data['status'] ?? Event::STATUS_DRAFT));
 
         $event = Event::create([
-            'event_request_id' => null, // La création directe n'a pas de demande source.
             'organizer_id' => $actor->id,
             'created_by' => $actor->id,
             'title' => $data['title'],

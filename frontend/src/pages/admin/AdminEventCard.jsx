@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge, Button } from '../../components/ui';
 import { eventPublicDetailPath } from '../../lib/eventPaths';
@@ -55,13 +56,15 @@ function statusBadge(statusDisplay, ev) {
 export function AdminEventCard({
   ev,
   statusDisplay,
-  organizers,
+  organizers = [],
   onAssign,
   onAssignToMe,
   onDeleteClick,
   onManageCapacity,
   onApprovePublication,
 }) {
+  const [selectedOrganizerId, setSelectedOrganizerId] = useState('');
+  const [isAssigning, setIsAssigning] = useState(false);
   const request = getLinkedRequest(ev);
   const metaParts = [ev.location, formatDate(ev.start_at)].filter(Boolean);
   const showManage = Boolean(onManageCapacity && canShowManageLink(ev));
@@ -74,11 +77,8 @@ export function AdminEventCard({
       <div className="space-y-2">
         <select
           className="select-field glass-panel w-full px-3 py-2 text-sm text-stone-800"
-          defaultValue=""
-          onChange={(e) => {
-            const id = Number(e.target.value);
-            if (id) onAssign(ev.id, id);
-          }}
+          value={selectedOrganizerId}
+          onChange={(e) => setSelectedOrganizerId(e.target.value)}
         >
           <option value="" disabled>
             Choisir un organisateur ou administrateur
@@ -90,15 +90,25 @@ export function AdminEventCard({
           ))}
         </select>
         <div className="grid grid-cols-2 gap-2">
-          {onAssignToMe && (
-            <Button variant="secondary" className={btnCompact} onClick={() => onAssignToMe(ev.id)}>
-              À moi
-            </Button>
-          )}
+          <Button
+            variant="primary"
+            className={btnCompact}
+            disabled={!selectedOrganizerId || isAssigning}
+            onClick={async () => {
+              setIsAssigning(true);
+              try {
+                await onAssign(ev.id, selectedOrganizerId);
+              } finally {
+                setIsAssigning(false);
+              }
+            }}
+          >
+            {isAssigning ? 'Confirmation...' : 'Confirmer'}
+          </Button>
           {showDelete && (
             <Button
               variant="danger"
-              className={`${btnCompact} ${onAssignToMe ? '' : 'col-span-2'}`}
+              className={btnCompact}
               onClick={() => onDeleteClick(ev)}
             >
               Supprimer
