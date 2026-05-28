@@ -28,8 +28,8 @@ This document tracks the autonomous deployment process of the SecRet-cms applica
 - [x] Verify `routes/api.php`
 
 ## Phase 6: Git & Deploy
-- [ ] Update `.gitignore`
-- [ ] Commit and Push
+- [x] Update `.gitignore`
+- [x] Commit and Push
 
 ## Phase 7: Post-Deploy
 - [ ] Update live URLs
