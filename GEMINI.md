@@ -26,10 +26,7 @@ This document tracks the autonomous deployment process of the SecRet-cms applica
 - [x] Update `.gitignore`
 - [x] Commit and Push
 
-## Phase 6: Post-Deploy
-- [x] Set Port to `8080` in Back4app Dashboard
-- [ ] Update live URLs in `cors.php` and Vercel
-- [ ] Set `SESSION_DRIVER=cookie` in Back4app
-- [ ] Set `CACHE_STORE=file` in Back4app
-- [ ] Verify health check
+## Target URLs
+- Backend: https://houdaz-8dd9bxe5.b4a.run
+- Frontend: https://sec-ret-cms.vercel.app
 
