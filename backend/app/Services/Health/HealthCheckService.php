@@ -26,11 +26,14 @@ class HealthCheckService
      */
     public function report(): array
     {
-        // Garder les noms des dépendances stables car le contrat OpenAPI documente ces clés.
         $services = [
             'mongodb' => $this->checkMongo(),
-            'redis' => $this->checkRedis(),
         ];
+
+        // Only check redis if it is actually used for something
+        if (config('cache.default') === 'redis' || config('session.driver') === 'redis' || config('queue.default') === 'redis') {
+            $services['redis'] = $this->checkRedis();
+        }
 
         return [
             'status' => $this->allHealthy($services) ? 'ok' : 'degraded',

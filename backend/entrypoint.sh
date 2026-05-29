@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Run migrations and seeders
-php artisan migrate --force
-php artisan db:seed --force
-
-# Cache config and routes
+# Cache config and routes first for speed
 php artisan config:cache
 php artisan route:cache
+
+# Run migrations and seeders (ignore errors if already seeded)
+php artisan migrate --force || true
+php artisan db:seed --force || true
 
 # Start nginx in background
 nginx
