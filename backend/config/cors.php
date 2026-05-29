@@ -22,6 +22,7 @@ return [
     'allowed_origins' => [
         'http://localhost:5173',
         'http://127.0.0.1:5173',
+        'https://sec-ret-cms.vercel.app',
         'https://velora-frontend.vercel.app',
         'https://houdaz-q1n0mt41.b4a.run',
     ],

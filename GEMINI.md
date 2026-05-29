@@ -27,7 +27,9 @@ This document tracks the autonomous deployment process of the SecRet-cms applica
 - [x] Commit and Push
 
 ## Phase 6: Post-Deploy
-- [ ] Set Port to `8080` in Back4app Dashboard
+- [x] Set Port to `8080` in Back4app Dashboard
 - [ ] Update live URLs in `cors.php` and Vercel
+- [ ] Set `SESSION_DRIVER=cookie` in Back4app
+- [ ] Set `CACHE_STORE=file` in Back4app
 - [ ] Verify health check
 
