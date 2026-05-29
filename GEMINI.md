@@ -26,7 +26,8 @@ This document tracks the autonomous deployment process of the SecRet-cms applica
 - [x] Update `.gitignore`
 - [x] Commit and Push
 
-## Target URLs (Back4app)
-- Backend: https://velora-backend.back4app.io (Update after deploy)
-- Frontend: https://velora-frontend.vercel.app (Update after deploy)
+## Phase 6: Post-Deploy
+- [ ] Set Port to `8080` in Back4app Dashboard
+- [ ] Update live URLs in `cors.php` and Vercel
+- [ ] Verify health check
 
