@@ -19,9 +19,14 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'https://sec-ret-cms.vercel.app',
+        'https://sec-ret-2r54wd2v9-anouarmohameds-projects.vercel.app',
+    ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => ['#^https://sec-ret-.*\.vercel\.app$#'],
 
     'allowed_headers' => ['*'],
 
@@ -29,6 +34,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 
 ];
