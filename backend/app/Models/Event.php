@@ -140,7 +140,11 @@ class Event extends Model
     {
         $path = $this->attributes['image_path'] ?? null;
         if (is_string($path) && $path !== '') {
-            return '/storage/'.ltrim(str_replace('\\', '/', $path), '/');
+            if (str_starts_with($path, 'data:image/') || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+                return $path;
+            }
+
+            return url('/storage/'.ltrim(str_replace('\\', '/', $path), '/'));
         }
 
         if ($this->relationLoaded('eventRequest') && $this->eventRequest?->image_path) {

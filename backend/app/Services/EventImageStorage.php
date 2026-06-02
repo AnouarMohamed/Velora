@@ -54,6 +54,10 @@ class EventImageStorage
             ]);
         }
 
+        if (config('filesystems.image_storage') === 'inline') {
+            return 'data:'.($mime ?? 'image/jpeg').';base64,'.base64_encode($bytes);
+        }
+
         // Générer un nom de fichier unique à l'aide d'un UUID pour éviter les collisions.
         $path = 'events/'.Str::uuid().'.'.$this->extensionFor($mime ?? 'image/jpeg');
 

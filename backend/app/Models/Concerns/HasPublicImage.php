@@ -25,7 +25,10 @@ trait HasPublicImage
             return null;
         }
 
-        // Normalize slashes and ensure the path is prefixed with /storage/
-        return '/storage/'.ltrim(str_replace('\\', '/', $path), '/');
+        if (str_starts_with($path, 'data:image/') || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return url('/storage/'.ltrim(str_replace('\\', '/', $path), '/'));
     }
 }

@@ -1,52 +1,53 @@
 FROM php:8.4-fpm-alpine
 
-# Install system dependencies
+ARG MONGODB_EXT_VERSION=2.3.3
+ARG REDIS_EXT_VERSION=6.3.0
+
 RUN apk add --no-cache \
-    bash \
-    curl \
-    libpng-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    nginx \
-    libzip-dev \
-    oniguruma-dev \
-    linux-headers \
-    openssl-dev \
-    $PHPIZE_DEPS
+        bash \
+        curl \
+        libpng-dev \
+        libxml2-dev \
+        libzip-dev \
+        linux-headers \
+        nginx \
+        oniguruma-dev \
+        openssl-dev \
+        unzip \
+        zip \
+        $PHPIZE_DEPS \
+    && docker-php-ext-install mbstring exif pcntl bcmath gd zip \
+    && printf "no\nno\nno\nno\nauto\nauto\nauto\nno\nauto\nno\nbundled\n" | pecl install mongodb-${MONGODB_EXT_VERSION} \
+    && printf "\n\n\n\n\n\n\n\n" | pecl install redis-${REDIS_EXT_VERSION} \
+    && docker-php-ext-enable mongodb redis \
+    && rm -rf /tmp/pear ~/.pearrc
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
-
-# Install MongoDB extension
-RUN pecl install mongodb && docker-php-ext-enable mongodb
-
-# Install Redis extension
-RUN pecl install redis && docker-php-ext-enable redis
-
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
 WORKDIR /var/www/html
 
-# Copy application files
+COPY composer.json composer.lock ./
+RUN composer install \
+        --no-dev \
+        --prefer-dist \
+        --no-autoloader \
+        --no-interaction \
+        --no-progress \
+        --no-scripts
+
 COPY . .
 
-# Install composer dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN composer dump-autoload --optimize --no-dev \
+    && php artisan package:discover --ansi \
+    && mkdir -p storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && (php artisan storage:link || true) \
+    && chown -R www-data:www-data storage bootstrap/cache public/storage
 
-# Setup permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-
-# Copy nginx configuration
 COPY nginx.conf /etc/nginx/http.d/default.conf
-
-# Expose port 8080
-EXPOSE 8080
-
-# Start script
-COPY entrypoint.sh /usr/local/bin/
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+EXPOSE 8080
+
 ENTRYPOINT ["entrypoint.sh"]
+CMD ["web"]

@@ -1,4 +1,6 @@
 # Root gitignore
+/backend.zip
+/package-lock.json
 backend/node_modules
 backend/vendor
 backend/.env
@@ -33,3 +35,4 @@ frontend/.env.local
 .idea
 .vscode
 *.log
+.vercel

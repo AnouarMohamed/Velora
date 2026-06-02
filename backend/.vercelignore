@@ -1,0 +1,16 @@
+.env
+.env.*
+.phpdoc
+.phpunit.cache
+.vercel
+auth.json
+docs
+node_modules
+public/build
+public/hot
+public/storage
+storage/app
+storage/framework
+storage/logs
+tests
+vendor

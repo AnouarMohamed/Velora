@@ -33,6 +33,14 @@ class EventRequestImageStorage
     {
         // Cas 1 : Téléchargement de fichier Laravel standard
         if ($image?->isValid()) {
+            if (config('filesystems.image_storage') === 'inline') {
+                $bytes = file_get_contents($image->getRealPath());
+
+                return $bytes === false
+                    ? null
+                    : 'data:'.$image->getMimeType().';base64,'.base64_encode($bytes);
+            }
+
             $path = $image->store('event-requests', 'public');
 
             return is_string($path) ? $path : null;
@@ -64,6 +72,10 @@ class EventRequestImageStorage
             ]);
         }
 
+        if (config('filesystems.image_storage') === 'inline') {
+            return 'data:'.($mime ?? 'image/jpeg').';base64,'.base64_encode($bytes);
+        }
+
         // Générer un nom de fichier unique à l'aide d'un UUID pour éviter les collisions.
         $path = 'event-requests/'.Str::uuid().'.'.$this->extensionFor($mime ?? 'image/jpeg');
         Storage::disk('public')->put($path, $bytes);
@@ -78,6 +90,10 @@ class EventRequestImageStorage
      */
     public function delete(?string $path): void
     {
+        if (is_string($path) && str_starts_with($path, 'data:image/')) {
+            return;
+        }
+
         if ($path) {
             Storage::disk('public')->delete($path);
         }

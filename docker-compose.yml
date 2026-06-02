@@ -6,9 +6,10 @@ services:
       APP_NAME: VELORA
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: http://192.168.1.107:8000
+      APP_URL: http://127.0.0.1:8000
       APP_LOCALE: fr
       APP_FALLBACK_LOCALE: fr
+      PORT: "8080"
       DB_CONNECTION: mongodb
       DB_DSN: mongodb://mongodb:27017/?replicaSet=rs0
       DB_DATABASE: velora
@@ -18,8 +19,9 @@ services:
       REDIS_HOST: redis
       LOG_CHANNEL: stack
       SEED_DEMO_DATA: "1"
+      CORS_ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
     ports:
-      - "8000:8000"
+      - "8000:8080"
     volumes:
       - ./backend:/var/www/html
       - backend_vendor:/var/www/html/vendor
@@ -29,7 +31,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000/api/health\") === false ? 1 : 0);'"]
+      test: ["CMD-SHELL", "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8080/api/health\") === false ? 1 : 0);'"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -37,9 +39,10 @@ services:
   frontend:
     build:
       context: ./frontend
+      target: dev
     environment:
       VITE_API_URL: /api
-      VITE_BACKEND_URL: http://backend:8000
+      VITE_BACKEND_URL: http://backend:8080
     ports:
       - "5173:5173"
     volumes:
@@ -56,7 +59,7 @@ services:
       APP_NAME: VELORA
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: http://192.168.1.107:8000
+      APP_URL: http://127.0.0.1:8000
       APP_LOCALE: fr
       APP_FALLBACK_LOCALE: fr
       DB_CONNECTION: mongodb

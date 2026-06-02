@@ -10,8 +10,14 @@ services:
         value: production
       - key: APP_KEY
         generateValue: true
+      - key: APP_URL
+        value: https://velora-backend.onrender.com
       - key: APP_DEBUG
         value: "false"
+      - key: RUN_MIGRATIONS
+        value: "1"
+      - key: SEED_DEMO_DATA
+        value: "0"
       - key: DB_CONNECTION
         value: mongodb
       - key: DB_DSN
@@ -24,16 +30,18 @@ services:
         value: file
       - key: QUEUE_CONNECTION
         value: sync
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://velora-frontend.onrender.com,https://sec-ret-cms.vercel.app
 
   - type: web
     name: velora-frontend
     env: static
-    buildCommand: cd frontend && npm install && npm run build
+    buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: ./frontend/dist
     plan: free
     envVars:
       - key: VITE_API_URL
-        value: https://velora-backend.onrender.com # Placeholder, will update after first deploy
+        value: https://velora-backend.onrender.com/api
     routes:
       - type: rewrite
         source: /*
