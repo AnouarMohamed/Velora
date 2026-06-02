@@ -1,4 +1,4 @@
-FROM node:22-alpine AS deps
+FROM node:22-alpine3.20 AS deps
 
 WORKDIR /app
 
@@ -24,7 +24,7 @@ ENV VITE_API_URL=${VITE_API_URL}
 COPY . .
 RUN npm run build
 
-FROM nginx:1.27-alpine AS production
+FROM nginx:1.27-alpine3.20 AS production
 
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
