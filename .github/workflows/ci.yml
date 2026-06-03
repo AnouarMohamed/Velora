@@ -83,12 +83,36 @@ jobs:
 
       - name: Validate OpenAPI Contract
         run: php artisan test tests/Feature/OpenApiContractTest.php
+        env:
+          DB_DSN: mongodb://127.0.0.1:27017/?replicaSet=rs0
+          DB_DATABASE: velora_testing
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          CACHE_DRIVER: redis
+          QUEUE_CONNECTION: redis
+          SESSION_DRIVER: redis
+
+      - name: Wait for Redis
+        run: |
+          for i in {1..30}; do
+            if bash -c "echo > /dev/tcp/127.0.0.1/6379" 2>/dev/null; then
+              echo "Redis reachable"
+              break
+            fi
+            echo "Waiting for Redis..."
+            sleep 1
+          done
 
       - name: Run Tests
         run: php artisan test
         env:
           DB_DSN: mongodb://127.0.0.1:27017/?replicaSet=rs0
           DB_DATABASE: velora_testing
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          CACHE_DRIVER: redis
+          QUEUE_CONNECTION: redis
+          SESSION_DRIVER: redis
 
       - name: Security Audit (Composer)
         run: composer audit || true
