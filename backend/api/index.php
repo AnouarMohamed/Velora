@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 try {
     $storagePath = '/tmp/laravel-storage';
@@ -19,11 +22,6 @@ try {
     $_ENV['LARAVEL_STORAGE_PATH'] = $storagePath;
     $_SERVER['LARAVEL_STORAGE_PATH'] = $storagePath;
 
-    // Handle Vercel's pathing
-    if (isset($_GET['__path'])) {
-         $_SERVER['REQUEST_URI'] = $_GET['__path'];
-    }
-
     require __DIR__.'/../public/index.php';
 } catch (\Throwable $e) {
     header('Content-Type: application/json');
@@ -33,6 +31,5 @@ try {
         'message' => $e->getMessage(),
         'file' => $e->getFile(),
         'line' => $e->getLine(),
-        'trace' => $e->getTraceAsString(),
     ]);
 }
