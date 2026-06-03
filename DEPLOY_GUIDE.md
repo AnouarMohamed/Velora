@@ -12,6 +12,7 @@ Le projet utilise MongoDB Atlas.
 ## 2. Déployer le Backend sur Vercel
 1. Créez un nouveau projet sur Vercel et importez le dossier `backend`.
 2. **Framework Preset:** Choisissez `Other` (Vercel détectera la config `vercel.json`).
+   (Laissez les "Build and Development Settings" par défaut, ne spécifiez pas de commande de build manuel).
 3. **Root Directory:** Sélectionnez `backend`.
 4. **Environment Variables:** Ajoutez les variables suivantes dans l'interface Vercel (copiez les valeurs depuis `backend/.env.vercel`) :
    - `APP_KEY`: (Ex: `base64:neRQgVih...`)
