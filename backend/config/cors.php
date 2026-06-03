@@ -33,6 +33,8 @@ return [
     'allowed_origins_patterns' => [
         '#^https://sec-ret-.*\.vercel\.app$#',
         '#^https://sec-ret-.*-anouarmohameds-projects\.vercel\.app$#',
+        '#^https://velora-.*\.vercel\.app$#',
+        '#^https://velora-.*-anouarmohameds-projects\.vercel\.app$#',
     ],
 
     'allowed_headers' => ['*'],
