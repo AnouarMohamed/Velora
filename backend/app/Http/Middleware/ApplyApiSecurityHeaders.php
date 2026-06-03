@@ -15,15 +15,17 @@ class ApplyApiSecurityHeaders
         'Referrer-Policy' => 'no-referrer',
         'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
         'X-Permitted-Cross-Domain-Policies' => 'none',
-        'Content-Security-Policy' => "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
     ];
 
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request , Closure ): Response
     {
         $response = $next($request);
-        abort_unless($response instanceof Response, 500);
 
-        return self::apply($response);
+        if ($response instanceof Response) {
+            return self::apply($response);
+        }
+
+        return $response;
     }
 
     public static function apply(Response $response): Response

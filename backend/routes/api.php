@@ -18,6 +18,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class);
 
+Route::get('/diag', function () {
+    return [
+        'php' => PHP_VERSION,
+        'mongodb_extension' => extension_loaded('mongodb'),
+        'redis_extension' => extension_loaded('redis'),
+    ];
+});
+
 Route::post('/register', [AuthController::class, 'register'])
     ->middleware('throttle:auth.register')
     ->name('register');
