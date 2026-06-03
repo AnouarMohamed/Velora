@@ -1,5 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "echo 'Skipping Vite build'",
+  "outputDirectory": "public",
   "functions": {
     "api/index.php": {
       "runtime": "vercel-php@0.8.0",
@@ -9,8 +11,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/api/index.php?__path=$1"
+      "dest": "/api/index.php?__path="
     }
   ]
 }
-
