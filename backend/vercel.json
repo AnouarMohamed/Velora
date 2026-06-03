@@ -1,17 +1,17 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "echo 'Skipping Vite build'",
-  "outputDirectory": "public",
   "functions": {
     "api/index.php": {
-      "runtime": "vercel-php@0.8.0",
-      "maxDuration": 10
+      "runtime": "vercel-php@0.8.0"
     }
   },
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/api/index.php"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/api/index.php?__path="
+      "dest": "/api/index.php"
     }
   ]
 }
