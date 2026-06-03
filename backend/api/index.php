@@ -32,7 +32,7 @@ try {
     }
 
     require __DIR__.'/../public/index.php';
-} catch (\\Throwable $e) {
+} catch (\Throwable $e) {
     header('Content-Type: application/json');
     http_response_code(500);
     echo json_encode([
