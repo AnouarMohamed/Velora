@@ -28,10 +28,10 @@ Le projet utilise MongoDB Atlas.
 
 ## 3. Déployer le Frontend sur Vercel
 1. Créez un nouveau projet sur Vercel et importez le dossier `frontend`.
-2. **Root Directory:** Sélectionnez `frontend`.
-3. **Environment Variables:**
+2. **Framework Preset:** Choisissez `Vite` ou `React`.
+3. **Root Directory:** Sélectionnez `frontend`.
+4. **Environment Variables:**
    - `VITE_API_URL`: L'URL de votre backend suivie de `/api` (ex: `https://sec-ret-cms-backend.vercel.app/api`).
-4. Déployez.
 
 ## 4. Vérification
 Une fois déployé, visitez `https://votre-backend.vercel.app/up`. Une page blanche avec "OK" signifie que tout fonctionne.
